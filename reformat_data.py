@@ -20,6 +20,9 @@ header_list = [
 blsub_start = 50
 blsub_end = blsub_start + 100
 
+kcant = 0.64
+dkcant = 0.04
+
 def load_file(filename, nsweeps, headers):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
@@ -37,7 +40,6 @@ def load_file(filename, nsweeps, headers):
 
     return(dat)
 
-
 def V2nm(V):
     """
     This function will convert the piezoscanner voltage signal from a Digital
@@ -51,7 +53,6 @@ def V2nm(V):
     calibration = 15.21                                #nm per volt
     dist = gain * calibration * V
     return(dist)
-
 
 def bl_subtraction(df, col, window_start, window_end):
     """
@@ -69,9 +70,7 @@ def bl_subtraction(df, col, window_start, window_end):
     bl_sub = df[col] - base
     return(bl_sub)
 
-
-def augment_file(filename, nsweeps,
-    window_start, window_end):
+def augment_file(filename, nsweeps, window_start, window_end):
 
     sensitivity_dat = pd.read_csv(filename + '_sensitivity.csv', sep = ",",
     header=None)
@@ -84,15 +83,29 @@ def augment_file(filename, nsweeps,
 
     grps = augmented_dat.groupby('sweep')
 
+    ## The following lines will perform the majority of the processing to
+    ## calculate force and work as parameters and add them to the dataframe.
     augmented_dat = augmented_dat.assign(
         i_blsub = grps
             .apply(bl_subtraction, 'i', 50, 150)
             .reset_index(drop=True),
         in0_blsub = grps
             .apply(bl_subtraction, 'in0', 50, 150)
-            .reset_index(drop=True))
+            .reset_index(drop=True)
+    )
+    augmented_dat = augmented_dat.assign(
+        deflection = augmented_dat['in0_blsub'] * mean_sensitivity
+    )
+    augmented_dat = augmented_dat.assign(
+        position = V2nm(augmented_dat['z'])
+            - min(V2nm(augmented_dat['z']))
+            - augmented_dat['deflection']
+    )
+    augmented_dat = augmented_dat.assign(
+        force = augmented_dat['deflection'] * kcant,
+    )
 
     return(augmented_dat)
 
 augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
-print(augmented_dat.head())
+print(augmented_dat.tail())
