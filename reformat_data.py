@@ -18,6 +18,10 @@ header_list = [
     ]
 
 def load_file(filename, nsweeps, headers):
+    """
+    This function will load a pseudo-raw HEKA .asc file, reformat it for later
+    analysis.
+    """
     dat = pd.read_csv(filename + '.asc', sep = ",", header=None,
         names = headers)
 
@@ -30,6 +34,20 @@ def load_file(filename, nsweeps, headers):
 
     return(dat)
 
+def V2nm(V):
+    """
+    This function will convert the piezoscanner voltage signal from a Digital
+    Instruments Bioscope into distance.
 
-reformatted_dat = load_file(filename, headers = header_list, nsweeps = nsweeps)
-reformatted_dat.to_csv(filename + '_reformatted.csv',sep=',', index = False)
+    The values for the calibration are based on the most recent piezoscanner
+    calibration parameters and 20x high-voltage amplifier in series with the
+    waveform generator.
+    """
+    gain = 20
+    calibration = 15.21                                #nm per volt
+    dist = gain * calibration * V
+    return(dist)
+
+
+#reformatted_dat = load_file(filename, headers = header_list, nsweeps = nsweeps)
+#reformatted_dat.to_csv(filename + '_reformatted.csv',sep=',', index = False)
