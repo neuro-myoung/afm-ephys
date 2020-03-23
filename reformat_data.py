@@ -9,6 +9,7 @@ configuration but can be changed as needed.
 """
 import numpy as np
 import pandas as pd
+import scipy.integrate as it
 
 filename = 'test'
 nsweeps = 10
@@ -70,6 +71,11 @@ def bl_subtraction(df, col, window_start, window_end):
     bl_sub = df[col] - base
     return(bl_sub)
 
+def calc_work(df):
+    work =  it.cumtrapz(df['force']*10**-9,
+        x = df['position']*10**-9, initial=0.0)
+    return(work)
+
 def augment_file(filename, nsweeps, window_start, window_end):
 
     sensitivity_dat = pd.read_csv(filename + '_sensitivity.csv', sep = ",",
@@ -108,4 +114,3 @@ def augment_file(filename, nsweeps, window_start, window_end):
     return(augmented_dat)
 
 augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
-print(augmented_dat.tail())
