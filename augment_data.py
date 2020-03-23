@@ -5,12 +5,14 @@ Convert HEKA exported .asc file into a .csv file used for later analysis.
 The following code take as input a pseudo-raw HEKA exported .asc file and
 reformat it into an augmented .csv file. All values of time will be converted
 into ms, current into pA, and voltage into mV. The column headers are currently
-set-up for my own channel configuration but can be changed as needed. Additional
-calculated parameters will be included in the new file.
+set-up for my own channel configuration but can be changed as needed.
+Additional calculated parameters will be included in the new file.
 
 The sensitivity file should share a base filename with the data appended with
-the suffix _sensitivity.csv. The metadata for the time being is written into the
-beginning of this file manually.
+the suffix _sensitivity.csv.
+
+The parameter file should share a base filename with the data appended with the
+suffix _params.csv.
 
 The additional calculated parameters include the following:
     - piezoscanner position
@@ -39,9 +41,6 @@ header_list = [
 
 blsub_start = 50
 blsub_end = blsub_start + 100
-
-kcant = 0.64
-dkcant = 0.04
 
 
 def load_file(filename, nsweeps, headers):
@@ -108,8 +107,8 @@ def calc_work(df):
 
 def augment_file(filename, nsweeps, window_start, window_end):
     """
-    This function will use pseudo-raw HEKA data, a sensitivity calibration file,
-    and some experimental meta-data to create an augmented .csv file with
+    This function will use pseudo-raw HEKA data, a sensitivity calibration file
+    , and some experimental meta-data to create an augmented .csv file with
     additional calculated parameters.
 
     The additional calculated parameters include the following:
@@ -128,6 +127,10 @@ def augment_file(filename, nsweeps, window_start, window_end):
 
     mean_sensitivity = np.mean(sensitivity_dat).values[0]
     std_sensitivity = np.std(sensitivity_dat).values[0]
+
+    param_dat = pd.read_csv(filename + '_params.csv')
+    kcant = float(param_dat['val'][param_dat['param'] == 'kcant'].values[0])
+    dkcant = float(param_dat['val'][param_dat['param'] == 'dkcant'].values[0])
 
     augmented_dat = load_file(filename, headers=header_list,
                               nsweeps=nsweeps)
