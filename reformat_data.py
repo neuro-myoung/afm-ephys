@@ -34,6 +34,7 @@ def load_file(filename, nsweeps, headers):
 
     return(dat)
 
+
 def V2nm(V):
     """
     This function will convert the piezoscanner voltage signal from a Digital
@@ -47,6 +48,23 @@ def V2nm(V):
     calibration = 15.21                                #nm per volt
     dist = gain * calibration * V
     return(dist)
+
+
+def bl_subtraction(df, col, window_start, window_end):
+    """
+    This function will baseline subtract either the photodetector signal or the
+    current by subtracting the mean of the designated time window.
+    """
+    if col == 'i':
+        t = 'ti'
+    elif col == 'in0':
+        t = 'tin0'
+    else:
+        print('No time series selected!')
+
+    base = np.mean(df[col][(df[t] >= window_start)&(df[t] <= window_end)])
+    bl_sub = df[col] - base
+    return(bl_sub)
 
 
 #reformatted_dat = load_file(filename, headers = header_list, nsweeps = nsweeps)
