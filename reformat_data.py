@@ -17,6 +17,9 @@ header_list = [
     'tin0', 'in0', 'tz', 'z', 'tlat', 'lat'
     ]
 
+blsub_start = 50
+blsub_end = blsub_start + 100
+
 def load_file(filename, nsweeps, headers):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
@@ -67,5 +70,29 @@ def bl_subtraction(df, col, window_start, window_end):
     return(bl_sub)
 
 
-#reformatted_dat = load_file(filename, headers = header_list, nsweeps = nsweeps)
-#reformatted_dat.to_csv(filename + '_reformatted.csv',sep=',', index = False)
+def augment_file(filename, nsweeps,
+    window_start, window_end):
+
+    sensitivity_dat = pd.read_csv(filename + '_sensitivity.csv', sep = ",",
+    header=None)
+
+    mean_sensitivity = np.mean(sensitivity_dat).values[0]
+    std_sensitivity = np.std(sensitivity_dat).values[0]
+
+    augmented_dat = load_file(filename, headers = header_list,
+        nsweeps = nsweeps)
+
+    grps = augmented_dat.groupby('sweep')
+
+    augmented_dat = augmented_dat.assign(
+        i_blsub = grps
+            .apply(bl_subtraction, 'i', 50, 150)
+            .reset_index(drop=True),
+        in0_blsub = grps
+            .apply(bl_subtraction, 'in0', 50, 150)
+            .reset_index(drop=True))
+
+    return(augmented_dat)
+
+augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
+print(augmented_dat.head())
