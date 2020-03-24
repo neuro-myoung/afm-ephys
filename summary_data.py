@@ -43,6 +43,8 @@ The following experimental parameters are carried over:
 """
 import numpy as np
 import pandas as pd
+import os
+os.chdir('C:/Users/HAL/afm-ephys')
 
 filename = 'test'
 roi_start = 450
@@ -142,7 +144,7 @@ def create_summary_file(filename):
 
     # Read in required files
     param = pd.read_csv(filename + '_params.csv').set_index('param')
-    dat = pd.read_csv(filename + '_augmented.csv', header=0)
+    dat = pd.read_hdf(filename + '_augmented.h5')
 
     dat_sub = (dat.loc[(dat['ti'] >= roi_start) & (dat['ti'] <= roi_end)]
                .reset_index())

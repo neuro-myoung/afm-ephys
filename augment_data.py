@@ -167,6 +167,4 @@ def augment_file(filename, nsweeps, window_start, window_end):
 
 
 augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
-data_store = pd.HDFStore('augmented_dat.h5')
-data_store['preprocessed_df'] = augmented_dat
-data_store.close()
+augmented_dat.to_hdf(filename+'_augmented.h5', key='df', mode='w')
