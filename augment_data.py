@@ -24,13 +24,15 @@ The additional calculated parameters include the following:
     - work
     - relative error in the work
 
-The final output is a long-form .csv file that can be subjected to later
+The final output is a long-form .h5 file that can be subjected to later
 analysis.
 
 """
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
+import os
+os.chdir('C:/Users/HAL/afm-ephys')
 
 filename = 'test'
 nsweeps = 10
@@ -52,7 +54,7 @@ def load_file(filename, nsweeps, headers):
                       names=headers)
 
     time_cols = [col for col in dat if col.startswith('t')]
-    dat[time_cols] = dat[time_cols].multiply(1000, axis="index")
+    dat[time_cols] *= 1e3
     dat['i'] *= 1e12
     dat['v'] *= 1e3
 
@@ -93,14 +95,14 @@ def bl_subtraction(df, col, window_start, window_end):
     return(bl_sub)
 
 
-def calc_work(df):
+def calc_work(x, y):
     """
     This function will calculate the cumulative integral of force as a function
     of piezoscanner distance traveled (work).
     """
-    work = it.cumtrapz(df['force'],  x=df['position'],
+    work = it.cumtrapz(y,  x=x,
                        initial=0) * 1e-18
-    work = pd.DataFrame(work, index=df.index)
+    work = pd.DataFrame(work)
 
     return(work)
 
@@ -108,7 +110,7 @@ def calc_work(df):
 def augment_file(filename, nsweeps, window_start, window_end):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
-    , and some experimental meta-data to create an augmented .csv file with
+    , and some experimental meta-data to create an augmented .h5 file with
     additional calculated parameters.
 
     The additional calculated parameters include the following:
@@ -139,43 +141,32 @@ def augment_file(filename, nsweeps, window_start, window_end):
 
     # The following lines will perform the majority of the processing to
     # calculate force and work as parameters and add them to the dataframe.
-    augmented_dat = augmented_dat.assign(
-        i_blsub=grps
-        .apply(bl_subtraction, 'i', 50, 150)
-        .reset_index(drop=True),
-        in0_blsub=grps
-        .apply(bl_subtraction, 'in0', 50, 150)
-        .reset_index(drop=True)
-    )
-    augmented_dat = augmented_dat.assign(
-        deflection=augmented_dat['in0_blsub'] * mean_sensitivity
-    )
-    augmented_dat = augmented_dat.assign(
-        position=V2nm(augmented_dat['z'])
-        - min(V2nm(augmented_dat['z']))
-        - augmented_dat['deflection']
-    )
-    augmented_dat = augmented_dat.assign(
-        force=augmented_dat['deflection'] * kcant,
-    )
-
-    grps = augmented_dat.groupby('sweep')
-    augmented_dat = augmented_dat.assign(
-        work=grps
-        .apply(calc_work)
-    )
-
+    i_blsub = (grps.apply(bl_subtraction, 'i', 50, 150)
+               .reset_index(drop=True))
+    in0_blsub = (grps.apply(bl_subtraction, 'in0', 50, 150)
+                 .reset_index(drop=True))
+    deflection = in0_blsub * mean_sensitivity
+    position = V2nm(augmented_dat['z']) - min(V2nm(augmented_dat['z']))
+    - deflection
+    force = deflection * kcant
+    work = calc_work(position, force)
     rel_error = np.sqrt((std_sensitivity / mean_sensitivity) ** 2
                         + (dkcant / kcant) ** 2)
 
-    grps = augmented_dat.groupby('sweep')
     augmented_dat = augmented_dat.assign(
-        dforce=augmented_dat['force'] * rel_error,
-        dwork=augmented_dat['work'] * rel_error
+        i_blsub=i_blsub,
+        in0_blsub=in0_blsub,
+        deflection=deflection,
+        position=position,
+        force=force,
+        work=work,
+        dforce=force * rel_error,
+        dwork=work * rel_error
     )
-
     return(augmented_dat)
 
 
 augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
-augmented_dat.to_csv('test_augmented.csv', sep=',')
+data_store = pd.HDFStore('augmented_dat.h5')
+data_store['preprocessed_df'] = augmented_dat
+data_store.close()
