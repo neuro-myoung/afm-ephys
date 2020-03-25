@@ -14,6 +14,15 @@ plot_dat = grps.get_group(10)
 
 
 def plot_single_sweep(sweep):
+    """
+    This function will take as an argument a single sweep of pre-processed
+    afm-ephys data and create a representative trace.
+
+    The traces shown by default are position, force, work, and current. The
+    traces are stacked vertically and aligned on the time axis. By default
+    there are no axis or labels save for the titles indicating the data shown
+    in each plot.
+    """
     fig, axs = plt.subplots(nrows=4, dpi=300, figsize=(2, 4),
                             gridspec_kw={'height_ratios': [0.5, 1.5, 1.5, 5]})
     colors = ['g', 'b', 'm', 'k']
