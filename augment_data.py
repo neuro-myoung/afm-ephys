@@ -31,8 +31,6 @@ analysis.
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
-import os
-os.chdir('C:/Users/HAL/afm-ephys')
 
 filename = 'test'
 nsweeps = 10

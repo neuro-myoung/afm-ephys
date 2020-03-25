@@ -43,8 +43,6 @@ The following experimental parameters are carried over:
 """
 import numpy as np
 import pandas as pd
-import os
-os.chdir('C:/Users/HAL/afm-ephys')
 
 filename = 'test'
 roi_start = 450
