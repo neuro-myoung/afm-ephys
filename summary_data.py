@@ -96,7 +96,7 @@ def find_threshvals(pd_groups, sum_df):
             pd.Series(wthresh_lst)])
 
 
-def create_summary_file(filename):
+def summarize(filename):
     """
     The following function will use an augmented file and parameter file in
     order to make a summary data file.
@@ -220,5 +220,5 @@ def create_summary_file(filename):
     return(agg_df)
 
 
-summary_file = create_summary_file(filename)
+summary_file = summarize(filename)
 summary_file.to_csv(path + filename + '_summary.csv', sep=',', index=False)
