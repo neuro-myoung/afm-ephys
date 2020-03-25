@@ -31,8 +31,6 @@ analysis.
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
-import os
-print(os.listdir())
 
 path = 'example/'
 filename = 'test'
@@ -96,15 +94,14 @@ def bl_subtraction(df, col, window_start, window_end):
     return(bl_sub)
 
 
-def calc_work(x, y):
+def calc_work(df, x, y):
     """
     This function will calculate the cumulative integral of force as a function
     of piezoscanner distance traveled (work).
     """
-    work = it.cumtrapz(y,  x=x,
-                       initial=0) * 1e-18
+    work = it.cumtrapz(df[y],  x=df[x],
+                       initial=0) * 1e-3
     work = pd.DataFrame(work)
-
     return(work)
 
 
@@ -150,7 +147,6 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
     position = V2nm(augmented_dat['z']) - min(V2nm(augmented_dat['z']))
     - deflection
     force = deflection * kcant
-    work = calc_work(position, force)
     rel_error = np.sqrt((std_sensitivity / mean_sensitivity) ** 2
                         + (dkcant / kcant) ** 2)
 
@@ -160,10 +156,18 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
         deflection=deflection,
         position=position,
         force=force,
-        work=work,
         dforce=force * rel_error,
-        dwork=work * rel_error
+        absi_blsub=np.abs(i_blsub)
     )
+    grps = augmented_dat.groupby('sweep')
+    augmented_dat = augmented_dat.assign(
+        work=grps.apply(calc_work, 'position', 'force')
+        .reset_index(drop=True),
+        dwork=grps.apply(calc_work, 'position', 'force')
+        .reset_index(drop=True)
+
+    )
+
     return(augmented_dat)
 
 
