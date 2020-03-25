@@ -44,6 +44,7 @@ The following experimental parameters are carried over:
 import numpy as np
 import pandas as pd
 
+path = 'example/'
 filename = 'test'
 roi_start = 450
 roi_end = 950
@@ -141,8 +142,8 @@ def create_summary_file(filename):
     """
 
     # Read in required files
-    param = pd.read_csv(filename + '_params.csv').set_index('param')
-    dat = pd.read_hdf(filename + '_augmented.h5')
+    param = pd.read_csv(path + filename + '_params.csv').set_index('param')
+    dat = pd.read_hdf(path + filename + '_augmented.h5')
 
     dat_sub = (dat.loc[(dat['ti'] >= roi_start) & (dat['ti'] <= roi_end)]
                .reset_index())
@@ -220,4 +221,4 @@ def create_summary_file(filename):
 
 
 summary_file = create_summary_file(filename)
-summary_file.to_csv(filename + '_summary.csv', sep=',', index=False)
+summary_file.to_csv(path + filename + '_summary.csv', sep=',', index=False)

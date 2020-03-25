@@ -31,7 +31,10 @@ analysis.
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
+import os
+print(os.listdir())
 
+path = 'example/'
 filename = 'test'
 nsweeps = 10
 header_list = [
@@ -43,12 +46,12 @@ blsub_start = 50
 blsub_end = blsub_start + 100
 
 
-def load_file(filename, nsweeps, headers):
+def load_file(path, filename, nsweeps, headers):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
     analysis.
     """
-    dat = pd.read_csv(filename + '.asc', sep=",", header=None,
+    dat = pd.read_csv(path + filename + '.asc', sep=",", header=None,
                       names=headers)
 
     time_cols = [col for col in dat if col.startswith('t')]
@@ -105,7 +108,7 @@ def calc_work(x, y):
     return(work)
 
 
-def augment_file(filename, nsweeps, window_start, window_end):
+def augment_file(path, filename, nsweeps, window_start, window_end):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
     , and some experimental meta-data to create an augmented .h5 file with
@@ -122,17 +125,17 @@ def augment_file(filename, nsweeps, window_start, window_end):
         - relative error in the work
 
     """
-    sensitivity_dat = pd.read_csv(filename + '_sensitivity.csv', sep=",",
-                                  header=None)
+    sensitivity_dat = pd.read_csv(path + filename + '_sensitivity.csv',
+                                  sep=",", header=None)
 
     mean_sensitivity = np.mean(sensitivity_dat).values[0]
     std_sensitivity = np.std(sensitivity_dat).values[0]
 
-    param_dat = pd.read_csv(filename + '_params.csv')
+    param_dat = pd.read_csv(path + filename + '_params.csv')
     kcant = float(param_dat['val'][param_dat['param'] == 'kcant'].values[0])
     dkcant = float(param_dat['val'][param_dat['param'] == 'dkcant'].values[0])
 
-    augmented_dat = load_file(filename, headers=header_list,
+    augmented_dat = load_file(path, filename, headers=header_list,
                               nsweeps=nsweeps)
 
     grps = augmented_dat.groupby('sweep')
@@ -164,5 +167,5 @@ def augment_file(filename, nsweeps, window_start, window_end):
     return(augmented_dat)
 
 
-augmented_dat = augment_file('test', nsweeps, blsub_start, blsub_end)
-augmented_dat.to_hdf(filename+'_augmented.h5', key='df', mode='w')
+augmented_dat = augment_file(path, 'test', nsweeps, blsub_start, blsub_end)
+augmented_dat.to_hdf(path + filename + '_augmented.h5', key='df', mode='w')

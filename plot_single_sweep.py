@@ -1,17 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
 
-%matplotlib inline
-%config InlineBackend.figure_format = 'svg'
-
-os.chdir('C:/Users/HAL/afm-ephys')
-
+path = 'example/'
 filename = 'test'
-roi_start = 450
-roi_end = 950
+roi_start = 350
+roi_end = 1000
 
-dat = pd.read_hdf(filename + '_augmented.h5')
+dat = pd.read_hdf(path + filename + '_augmented.h5')
 dat_sub = dat[(dat['ti'] >= roi_start) & (dat['ti'] <= roi_end)]
 grps = dat_sub.groupby('sweep')
 
@@ -33,7 +28,7 @@ def plot_single_sweep(sweep):
         ax.axis('off')
     plt.tight_layout()
     fig.show()
-    plt.savefig(filename + '_ex-trace.pdf', dpi=300, transparent=True)
+    plt.savefig(path + filename + '_ex-trace.pdf', dpi=300, transparent=True)
 
 
 plot_single_sweep(filename)
