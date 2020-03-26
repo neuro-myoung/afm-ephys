@@ -45,11 +45,12 @@ import numpy as np
 import pandas as pd
 
 path = 'example/'
-filename = 'test'
+filename = '20200214_hek293t_mp2_c2'
 roi_start = 450
 roi_end = 950
 blsub_start = 50
 blsub_end = blsub_start + 100
+nsweeps = 4
 
 
 def window_val(df, col, window_start, window_end, func):
@@ -193,19 +194,19 @@ def summarize(filename):
         threshind=col_lst[0],
         fthresh=col_lst[1],
         wthresh=col_lst[2],
-        date=np.repeat(param.loc['date'][0], 10),
-        cell=np.repeat(param.loc['cell #'][0], 10),
-        Rs=np.repeat(param.loc['Rs'][0], 10),
-        Cm=np.repeat(param.loc['Cm'][0], 10),
-        Rscomp=np.repeat(param.loc['Rscomp'][0], 10),
-        kcant=np.repeat(param.loc['kcant'][0], 10),
-        dkcant=np.repeat(param.loc['dkcant'][0], 10),
-        protocol=np.repeat(param.loc['protocol'][0], 10),
-        velocity=np.repeat(param.loc['velocity'][0], 10),
-        construct=np.repeat(param.loc['construct'][0], 10),
-        osm=np.repeat(param.loc['mosm'][0], 10),
+        date=np.repeat(param.loc['date'][0], nsweeps),
+        cell=np.repeat(param.loc['cell #'][0], nsweeps),
+        Rs=np.repeat(param.loc['Rs'][0], nsweeps),
+        Cm=np.repeat(param.loc['Cm'][0], nsweeps),
+        Rscomp=np.repeat(param.loc['Rscomp'][0], nsweeps),
+        kcant=np.repeat(param.loc['kcant'][0], nsweeps),
+        dkcant=np.repeat(param.loc['dkcant'][0], nsweeps),
+        protocol=np.repeat(param.loc['protocol'][0], nsweeps),
+        velocity=np.repeat(param.loc['velocity'][0], nsweeps),
+        construct=np.repeat(param.loc['construct'][0], nsweeps),
+        osm=np.repeat(param.loc['mosm'][0], nsweeps),
         uniqueID=np.repeat("_".join([param.loc['date'][0],
-                                     param.loc['cell #'][0]]), 10)
+                                     param.loc['cell #'][0]]), nsweeps)
 
     )
 
