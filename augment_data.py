@@ -32,24 +32,18 @@ import numpy as np
 import pandas as pd
 import scipy.integrate as it
 
-path = 'example/'
-filename = '20200303_hek293t_mp1_c6'
-nsweeps = 8
 header_list = [
     'index', 'ti', 'i', 'tv', 'v',
     'tin0', 'in0', 'tz', 'z', 'tlat', 'lat'
 ]
 
-blsub_start = 50
-blsub_end = blsub_start + 100
 
-
-def load_file(path, filename, nsweeps, headers):
+def load_file(path, nsweeps, headers=header_list):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
     analysis.
     """
-    dat = pd.read_csv(path + filename + '.asc', sep=",", header=None,
+    dat = pd.read_csv(path + '.asc', sep=",", header=None,
                       names=headers)
 
     time_cols = [col for col in dat if col.startswith('t')]
@@ -77,7 +71,7 @@ def V2nm(V):
     return(dist)
 
 
-def bl_subtraction(df, col, window_start, window_end):
+def bl_subtraction(df, col, window):
     """
     This function will baseline subtract either the photodetector signal or the
     current by subtracting the mean of the designated time window.
@@ -89,7 +83,7 @@ def bl_subtraction(df, col, window_start, window_end):
     else:
         print('No time series selected!')
 
-    base = np.mean(df[col][(df[t] >= window_start) & (df[t] <= window_end)])
+    base = np.mean(df[col][(df[t] >= window[0]) & (df[t] <= window[1])])
     bl_sub = df[col] - base
     return(bl_sub)
 
@@ -105,7 +99,7 @@ def calc_work(df, x, y):
     return(work)
 
 
-def augment_file(path, filename, nsweeps, window_start, window_end):
+def augment_file(path, nsweeps, window):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
     , and some experimental meta-data to create an augmented .h5 file with
@@ -122,27 +116,26 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
         - relative error in the work
 
     """
-    sensitivity_dat = pd.read_csv(path + filename + '_sensitivity.csv',
+    sensitivity_dat = pd.read_csv(path + '_sensitivity.csv',
                                   sep=",", header=None)
 
     mean_sensitivity = np.mean(sensitivity_dat).values[0]
     std_sensitivity = np.std(sensitivity_dat).values[0]
 
-    param_dat = pd.read_csv(path + filename + '_params.csv')
+    param_dat = pd.read_csv(path + '_params.csv')
     kcant = float(param_dat['val'][param_dat['param'] == 'kcant'].values[0])
     dkcant = float(param_dat['val'][param_dat['param'] == 'dkcant'].values[0])
 
-    augmented_dat = load_file(path, filename, headers=header_list,
+    augmented_dat = load_file(path, headers=header_list,
                               nsweeps=nsweeps)
 
     grps = augmented_dat.groupby('sweep')
-    print(len(grps))
 
     # The following lines will perform the majority of the processing to
     # calculate force and work as parameters and add them to the dataframe.
-    i_blsub = (grps.apply(bl_subtraction, 'i', 50, 150)
+    i_blsub = (grps.apply(bl_subtraction, 'i', window)
                .reset_index(drop=True))
-    in0_blsub = (grps.apply(bl_subtraction, 'in0', 50, 150)
+    in0_blsub = (grps.apply(bl_subtraction, 'in0', window)
                  .reset_index(drop=True))
     deflection = in0_blsub * mean_sensitivity
     position = V2nm(augmented_dat['z']) - min(V2nm(augmented_dat['z']))
@@ -170,16 +163,3 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
     )
 
     return(augmented_dat)
-
-
-augmented_dat = augment_file(path, filename, nsweeps, blsub_start, blsub_end)
-augmented_dat.to_hdf(path + filename + '_augmented.h5', key='df', mode='w')
-
-augmented_dat = load_file(path, filename, headers=header_list,
-                          nsweeps=nsweeps)
-
-grps = augmented_dat.groupby('sweep')
-i_blsub = (augmented_dat.apply(bl_subtraction, 'i', 50, 150)
-           .reset_index(drop=True))
-
-print(augmented_dat['i'])
