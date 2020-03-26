@@ -24,6 +24,10 @@ class PlotData(object):
                                  & (self.dat['ti'] <= self.end))]
         self.grps_sub = self.dat_sub.groupby('sweep')
 
+        self.lab_dict = {'i_blsub': ' pA', 'force': ' nN',
+                         'work': ' fJ', 'position': ' nm',
+                         'ti': 'ms', 'tin0': 'ms', 'tz': 'ms'}
+
     def plot_sweep(self, sweep, scalebars=False, scalelabs=False):
         """
         This function will take as an argument a single sweep of pre-processed
@@ -48,8 +52,8 @@ class PlotData(object):
             ax.plot(self.plot_dat[var[0]], self.plot_dat[var[1]],
                     color=color, linewidth=0.5)
             ax.set_title(title, size=10)
-            self.plot_range = self.axis_range(var[1])
-            self.plot_domain = self.axis_range(var[0])
+            self.plot_range = ax.get_ylim[1] - ax.get_ylim[0]
+            self.plot_domain = ax.get_xlim[1] - ax.get_xlim[0]
             ax.set_ylim(np.min(self.dat_sub[var[1]]) - 0.05 * self.plot_range,
                         np.max(self.dat_sub[var[1]]) + 0.05 * self.plot_range)
             ax.axis('off')
@@ -97,9 +101,6 @@ class PlotData(object):
         """
         This function adds labels to the scalebars when called.
         """
-
-        lab_dict = {'i_blsub': ' pA', 'force': ' nN',
-                    'work': ' fJ', 'position': ' nm'}
         ylen = self.round_1_sf(0.2*self.plot_range)
 
         if var == 'i_blsub':
@@ -108,22 +109,15 @@ class PlotData(object):
             x2 = np.min(self.dat_sub['ti']) + 0.02 * self.plot_domain
             y2 = 0.9 * np.max(self.dat_sub[var])-(ylen-0.02*self.plot_range)
             ax.text(x1, y1, '100 ms', fontsize=6)
-            ax.text(x2, y2, str(int(ylen)) + lab_dict[var], fontsize=6)
+            ax.text(x2, y2, str(int(ylen)) + self.lab_dict[var], fontsize=6)
         else:
             ylen *= 2
             x1 = np.min(self.dat_sub['tin0']) + 0.02 * self.plot_domain
             y1 = 0.9 * np.max(self.dat_sub[var])-(0.75*ylen)
-            ax.text(x1, y1, str(int(ylen)) + lab_dict[var], fontsize=6)
+            ax.text(x1, y1, str(int(ylen)) + self.lab_dict[var], fontsize=6)
 
     def round_1_sf(self, num):
         """
         This function will round a number to only 1 significant figure.
         """
         return(round(num, -int(floor(log10(abs(num))))))
-
-    def axis_range(self, var):
-        """
-        This function will find the range of a given plotting axis.
-        """
-        ax_range = (np.max(self.dat_sub[var]) - np.min(self.dat_sub[var]))
-        return(ax_range)
