@@ -33,8 +33,8 @@ import pandas as pd
 import scipy.integrate as it
 
 path = 'example/'
-filename = 'test'
-nsweeps = 10
+filename = '20200303_hek293t_mp1_c6'
+nsweeps = 8
 header_list = [
     'index', 'ti', 'i', 'tv', 'v',
     'tin0', 'in0', 'tz', 'z', 'tlat', 'lat'
@@ -136,6 +136,7 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
                               nsweeps=nsweeps)
 
     grps = augmented_dat.groupby('sweep')
+    print(len(grps))
 
     # The following lines will perform the majority of the processing to
     # calculate force and work as parameters and add them to the dataframe.
@@ -171,5 +172,14 @@ def augment_file(path, filename, nsweeps, window_start, window_end):
     return(augmented_dat)
 
 
-augmented_dat = augment_file(path, 'test', nsweeps, blsub_start, blsub_end)
+augmented_dat = augment_file(path, filename, nsweeps, blsub_start, blsub_end)
 augmented_dat.to_hdf(path + filename + '_augmented.h5', key='df', mode='w')
+
+augmented_dat = load_file(path, filename, headers=header_list,
+                          nsweeps=nsweeps)
+
+grps = augmented_dat.groupby('sweep')
+i_blsub = (augmented_dat.apply(bl_subtraction, 'i', 50, 150)
+           .reset_index(drop=True))
+
+print(augmented_dat['i'])
