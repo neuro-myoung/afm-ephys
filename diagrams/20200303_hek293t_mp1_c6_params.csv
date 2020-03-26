@@ -1,0 +1,14 @@
+﻿param,val
+date,20200303
+cell #,6
+protocol,scan-80
+velocity,40
+kcant,0.76
+dkcant,0.05
+Rp,3.5
+Rm,1.5
+Cm,23.14
+Rs,8.403
+Rscomp,55
+mosm,319
+construct,mp1

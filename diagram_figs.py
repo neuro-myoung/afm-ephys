@@ -34,8 +34,8 @@ def split_sweep(sweep):
     return(approach, retract)
 
 
-def reptrace_plot(groups, sweep, vars, rois=None, axparams=axparam_dict,
-                  peaklines=False):
+def reptrace_plot(filename, groups, sweep, vars, rois=None,
+                  axparams=axparam_dict, peaklines=False):
     """
     This function will create a simplified representative figure of a given
     sweep identified by a grouped data frame and sweep number. The variables to
@@ -52,9 +52,9 @@ def reptrace_plot(groups, sweep, vars, rois=None, axparams=axparam_dict,
     else:
         pass
     fig, axs = plt.subplots(len(vars), dpi=300, figsize=(1, 0.75*len(vars)))
-    colors = [axparams['cols'][x] for x in vars]
-    xvalues = [axparams['xvals'][x] for x in vars]
     if isinstance(axs, np.ndarray):
+        colors = [axparams['cols'][x] for x in vars]
+        xvalues = [axparams['xvals'][x] for x in vars]
         for ax, color, y, x in zip(axs, colors, vars, xvalues):
             ax.plot(plot_dat[x], plot_dat[y], color=color,
                     linewidth=0.5)
@@ -73,16 +73,19 @@ def reptrace_plot(groups, sweep, vars, rois=None, axparams=axparam_dict,
                 else:
                     pass
     else:
-        for color, y, x in zip(colors, vars, xvalues):
-            axs.plot(plot_dat[x], plot_dat[y], color=color,
-                     linewidth=0.5)
+        y = vars[0]
+        color = axparams['cols'][y]
+        x = axparams['xvals'][y]
+        axs.plot(plot_dat[x], plot_dat[y], color=color,
+                 linewidth=0.5)
 
-            axis_arrows(fig, axs, x, y, lab_dict=axparams['labs'])
+        axis_arrows(fig, axs, x, y, labels=axparams['labs'])
+    plt.tight_layout()
+    plt.savefig(filename + '.pdf', format="pdf", dpi=300)
+    plt.show()
 
-    return(axs)
 
-
-def xy_plot(groups, sweep, vars, integrate=False,
+def xy_plot(filename, groups, sweep, vars, integrate=False,
             axparams=axparam_dict):
     """
     This function will take as an argument a sweep defined by a grouped
@@ -91,16 +94,21 @@ def xy_plot(groups, sweep, vars, integrate=False,
     to true a fill will be introduced under the line.
     """
     plot_dat = groups.get_group(sweep).reset_index(drop=True)
-    fig, ax = plt.subplots(nrows=1, dpi=300, figsize=(2, 2))
+    fig, ax = plt.subplots(nrows=1, dpi=300, figsize=(1.5, 1.5))
     [approach, retract] = split_sweep(plot_dat)
     ax.plot(approach[vars[0]], approach[vars[1]], 'k-', linewidth=0.5)
     if integrate is True:
         ax.fill_between(approach[vars[0]], 0, approach[vars[1]],
                         facecolor='m', alpha=0.6)
+
+        ax.text(0.68, 0.15, 'Work', fontsize=8,
+                transform=ax.transAxes)
     else:
         pass
     axis_arrows(fig, ax, vars[0], vars[1], axparams['labs'])
-    return(ax)
+    plt.tight_layout()
+    plt.savefig(filename + '.pdf', format="pdf", dpi=300)
+    plt.show()
 
 
 def hide_ax(fig, ax):
@@ -166,7 +174,6 @@ def peak_lines(df, ax, ymin):
     """
     loc_lst = [df['tin0'][df['force'].idxmax()],
                df['ti'][df['absi_blsub'].idxmax()]]
-    print(loc_lst)
     for i in loc_lst:
         ax.axvline(x=i, ymin=ymin, ymax=1.2, c="red", linewidth=0.5, zorder=0,
                    clip_on=False)
