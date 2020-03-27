@@ -99,6 +99,11 @@ def calc_work(df, x, y):
     return(work)
 
 
+def position_corr(df):
+    val = V2nm(df['z']) - df['deflection'] - min(V2nm(df['z']))
+    return(val)
+
+
 def augment_file(path, nsweeps, window):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
@@ -138,8 +143,6 @@ def augment_file(path, nsweeps, window):
     in0_blsub = (grps.apply(bl_subtraction, 'in0', window)
                  .reset_index(drop=True))
     deflection = in0_blsub * mean_sensitivity
-    position = V2nm(augmented_dat['z']) - min(V2nm(augmented_dat['z']))
-    - deflection
     force = deflection * kcant
     rel_error = np.sqrt((std_sensitivity / mean_sensitivity) ** 2
                         + (dkcant / kcant) ** 2)
@@ -148,10 +151,13 @@ def augment_file(path, nsweeps, window):
         i_blsub=i_blsub,
         in0_blsub=in0_blsub,
         deflection=deflection,
-        position=position,
         force=force,
         dforce=force * rel_error,
         absi_blsub=np.abs(i_blsub)
+    )
+    grps = augmented_dat.groupby('sweep')
+    augmented_dat = augmented_dat.assign(
+        position=(grps.apply(position_corr).reset_index(drop=True))
     )
     grps = augmented_dat.groupby('sweep')
     augmented_dat = augmented_dat.assign(
@@ -162,4 +168,8 @@ def augment_file(path, nsweeps, window):
 
     )
 
+    augmented_dat.to_hdf(path + '_augmented.h5', key='df', mode='w')
     return(augmented_dat)
+
+
+augment_file('diagrams/20200303_hek293t_mp1_c6', 8, [50, 150])
