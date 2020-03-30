@@ -20,7 +20,7 @@ class PlotData(object):
 
         # Dictionaries for axis customization based on variable plotted.
         self.lab_dict = {'i_blsub': ' pA', 'force': ' nN',
-                         'work': ' fJ', 'position': ' nm',
+                         'work': ' fJ', 'position': ' um',
                          'ti': 'ms', 'tin0': 'ms', 'tz': 'ms'}
         self.title_dict = {'i_blsub': 'Current', 'force': 'Force',
                            'work': 'Work', 'position': 'Position',
@@ -31,7 +31,7 @@ class PlotData(object):
 
         self.horiz_dict = {'i_blsub': 'ti', 'force': 'tin0',
                            'work': 'tin0', 'position': 'tz'}
-        self.height_dict = {'i_blsub': 5, 'force': 1.5,
+        self.height_dict = {'i_blsub': 3, 'force': 1.5,
                             'work': 1.5, 'position': 1.5}
 
     def plot_sweep(self, sweep, vars, roi=None, scalebars=False,
@@ -81,7 +81,7 @@ class PlotData(object):
             ax.set_ylim(np.min(self.dat[y]) - 0.05 * self.plot_range,
                         np.max(self.dat[y]) + 0.05 * self.plot_range)
             ax.axis('off')
-            ax.set_ylabel(title, size=8)
+            #ax.set_title(title, loc='left', size=8)
 
             if scalebars is True:
                 self.add_scalebars(ax, y)
@@ -119,8 +119,6 @@ class PlotData(object):
             else:
                 [y, yend] = [0.9 * np.min(self.dat_sub[var]),
                              0.9 * np.min(self.dat_sub[var]) + ylen]
-                print(y)
-                print(yend)
 
             lines = [[(x, y), (x, yend)],
                      [(x, y), (xend, y)]]
