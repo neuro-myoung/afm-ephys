@@ -31,6 +31,7 @@ analysis.
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
+import os
 
 header_list = [
     'index', 'ti', 'i', 'tv', 'v',
@@ -38,19 +39,25 @@ header_list = [
 ]
 
 
-def load_file(path, nsweeps, headers=header_list):
+def load_file(folder, filename, headers=header_list):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
     analysis.
     """
-    dat = pd.read_csv(path + '.asc', sep=",", header=None,
+    dat = pd.read_csv(folder + filename + '_scan.asc', sep=",", header=None,
                       names=headers)
+
+    params = pd.read_csv(folder + filename + '_params.csv', sep=",",
+                         header=0, index_col=0)
+
+    nsweeps = int(params.loc['nsweeps', 'val'])
 
     time_cols = [col for col in dat if col.startswith('t')]
     dat[time_cols] *= 1e3
     dat['i'] *= 1e12
     dat['v'] *= 1e3
-
+    print(filename)
+    print(len(dat)/nsweeps)
     dat['sweep'] = np.repeat(list(range(1, nsweeps + 1)), len(dat)/nsweeps)
 
     return(dat)
@@ -104,7 +111,7 @@ def position_corr(df):
     return(val)
 
 
-def augment_file(path, nsweeps, window):
+def augment_file(folder, filename, window):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
     , and some experimental meta-data to create an augmented .h5 file with
@@ -121,18 +128,19 @@ def augment_file(path, nsweeps, window):
         - relative error in the work
 
     """
-    sensitivity_dat = pd.read_csv(path + '_sensitivity.csv',
+    sensitivity_dat = pd.read_csv(folder + filename + '_sensitivity.csv',
                                   sep=",", header=None)
 
     mean_sensitivity = np.mean(sensitivity_dat).values[0]
     std_sensitivity = np.std(sensitivity_dat).values[0]
 
-    param_dat = pd.read_csv(path + '_params.csv')
-    kcant = float(param_dat['val'][param_dat['param'] == 'kcant'].values[0])
-    dkcant = float(param_dat['val'][param_dat['param'] == 'dkcant'].values[0])
+    param_dat = pd.read_csv(folder + filename + '_params.csv',
+                            header=0, index_col=0)
 
-    augmented_dat = load_file(path, headers=header_list,
-                              nsweeps=nsweeps)
+    kcant = float(param_dat.loc['kcant', 'val'])
+    dkcant = float(param_dat.loc['dkcant', 'val'])
+
+    augmented_dat = load_file(folder, filename, headers=header_list)
 
     grps = augmented_dat.groupby('sweep')
 
@@ -164,12 +172,21 @@ def augment_file(path, nsweeps, window):
         work=grps.apply(calc_work, 'position', 'force')
         .reset_index(drop=True),
         dwork=grps.apply(calc_work, 'position', 'force')
-        .reset_index(drop=True)
+        .reset_index(drop=True) * rel_error
 
     )
 
-    augmented_dat.to_hdf(path + '_augmented.h5', key='df', mode='w')
+    augmented_dat.to_hdf(folder + filename + '_augmented.h5', key='df',
+                         mode='w')
     return(augmented_dat)
 
 
-augment_file('diagrams/20200303_hek293t_mp1_c6', 8, [50, 150])
+def augment_file_list(folder, protocol, window):
+    """
+    This function will run the augment_file function on all files in a folder.
+    """
+    rmstring = '_' + protocol + '.asc'
+    file_list = [f.replace(rmstring, '')
+                 for f in os.listdir(folder) if f.endswith(protocol + '.asc')]
+    for i in file_list:
+        augment_file(folder, i, window)
