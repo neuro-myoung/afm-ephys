@@ -34,8 +34,9 @@ def make_paramfiles(folder, protocol, keys=keys):
             input_str = input("Your input was missing values!")
         else:
             param_dict = {k: v for (k, v) in zip(keys, input_vals)}
-        param_dict['uniqueID'] = '-'.join(param_dict['date']
-                                          + param_dict['cell#']
-                                          + param_dict['protocol'])
-        x = pd.DataFrame.from_dict(param_dict, orient='index', columns=['val'])
-        x.to_csv(folder + i + '_params.csv')
+        param_dict['uniqueID'] = '-'.join([param_dict['date'],
+                                           param_dict['cell#'],
+                                           param_dict['protocol']])
+        df = pd.DataFrame.from_dict(param_dict, orient='index',
+                                    columns=['val'])
+        df.to_csv(folder + i + '_params.csv')
