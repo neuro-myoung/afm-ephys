@@ -16,6 +16,7 @@ class PlotData(object):
         self.fullpath = file_path
         self.dat = pd.read_hdf(self.fullpath + '_augmented.h5')
         self.params = pd.read_csv(self.fullpath + '_params.csv')
+        self.grps = self.dat.groupby('sweep')
 
         # Dictionaries for axis customization based on variable plotted.
         self.lab_dict = {'i_blsub': ' pA', 'force': ' nN',
@@ -75,12 +76,12 @@ class PlotData(object):
         for ax, x, y, color, title in zip(self.axs, xvals, vars, colors, titles):
             ax.plot(self.plot_dat[x], self.plot_dat[y],
                     color=color, linewidth=0.5)
-            ax.set_title(title, size=8)
             self.plot_range = ax.get_ylim()[1] - ax.get_ylim()[0]
             self.plot_domain = ax.get_xlim()[1] - ax.get_xlim()[0]
-            ax.set_ylim(np.min(self.dat_sub[y]) - 0.05 * self.plot_range,
-                        np.max(self.dat_sub[y]) + 0.05 * self.plot_range)
+            ax.set_ylim(np.min(self.dat[y]) - 0.05 * self.plot_range,
+                        np.max(self.dat[y]) + 0.05 * self.plot_range)
             ax.axis('off')
+            ax.set_ylabel(title, size=8)
 
             if scalebars is True:
                 self.add_scalebars(ax, y)
@@ -168,3 +169,11 @@ class PlotData(object):
         This function will round a number to only 1 significant figure.
         """
         return(round(num, -int(floor(log10(abs(num))))))
+
+    def remove_sweep(self, sweeps):
+        if hasattr(sweeps, '__iter__') is True:
+            self.dat = self.dat[self.dat['sweep'] not in sweeps]
+            self.grps = self.dat.groupby('sweep')
+        else:
+            self.dat = self.dat[self.dat['sweep'] != sweeps]
+            self.grps = self.dat.groupby('sweep')
