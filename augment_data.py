@@ -212,7 +212,7 @@ def augment_file(folder, filename, window):
     return(augmented_dat)
 
 
-def augment_file_list(folder, protocol, window):
+def augment_file_list(folder, protocol, window=[50, 150]):
     """
     This function will run the augment_file function on all files in a folder.
     """

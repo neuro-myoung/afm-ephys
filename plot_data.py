@@ -162,6 +162,7 @@ class PlotData(object):
         else:
             self.dat = self.dat[self.dat['sweep'] != sweeps]
             self.grps = self.dat.groupby('sweep')
+        self.dat.to_hdf(self.fullpath + '_augmented.h5', key='df', mode='w')
 
     def plot_all_sweeps(self, vars, roi=None, scalebars=False):
         """
