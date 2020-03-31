@@ -26,7 +26,7 @@ class PlotData(object):
                            'ti': 'Time', 'tin0': 'Time', 'tz': 'Time'}
         self.col_dict = {'i_blsub': 'k', 'force': 'b', 'work': 'm', 'position': 'g'}
         self.horiz_dict = {'i_blsub': 'ti', 'force': 'tin0', 'work': 'tin0', 'position': 'tz'}
-        self.height_dict = {'i_blsub': 3, 'force': 1.5, 'work': 1.5, 'position': 1.5}
+        self.height_dict = {'i_blsub': 2, 'force': 1, 'work': 1, 'position': 0.5}
 
     def plot_sweep(self, sweep, vars, roi=None, scalebars=False, scalelabs=False):
         """
