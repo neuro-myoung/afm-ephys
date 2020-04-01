@@ -256,13 +256,14 @@ class PlotData(object):
         """
         summary = pd.read_csv(self.fullpath + '_summary.csv')
 
-        ax.axvline(x=summary.loc[sweep, 'tpeaki'], color='k', linewidth=0.5)
-        ax.axvline(x=summary.loc[sweep, 'tpeakf'], color='b', linewidth=0.5)
+        ax.axvline(x=summary.loc[sweep, 'tpeaki'], color='k', linewidth=0.25)
+        ax.axvline(x=summary.loc[sweep, 'tpeakf'], color='b', linewidth=0.25)
         ax.axvline(x=self.dat_sub['ti'].reset_index(drop=True)
-                   [summary.loc[sweep, 'threshind']], color='r', linewidth=0.5)
+                   [summary.loc[sweep, 'threshind']], color='r', linewidth=0.25)
+        ax.axhline(y=0, color='r', linewidth=0.5, linestyle='dashed')
 
         if (val == 'i_blsub') and (summary.loc[sweep, 'threshind'] != 0):
-            ax.axhline(y=summary.loc[sweep, 'thresh'], color='r', linewidth=0.5)
-            ax.axhline(y=-1*summary.loc[sweep, 'thresh'], color='r', linewidth=0.5)
+            ax.axhline(y=summary.loc[sweep, 'thresh'], color='r', linewidth=0.25)
+            ax.axhline(y=-1*summary.loc[sweep, 'thresh'], color='r', linewidth=0.25)
         else:
             pass
