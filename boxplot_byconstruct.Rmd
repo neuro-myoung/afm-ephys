@@ -1,0 +1,92 @@
+---
+title: "Summary Plots"
+output: html_document
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'summary_plots.html'))})
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=5, 
+                      fig.height=3,
+                      dpi=300)
+```
+
+This markdown document goes over how summary plots are constructed from a table containing aggregate data.
+
+## Load File
+
+The code below will load the aggregate data file and create an ordered list of factors from the constructs present.It also creates a list of names associated with each channel of interest that will later be mappepd onto these factors for plot aesthetics.
+
+```{r loaddata, echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+dat <- read.csv('agg_bychannel.csv', header=TRUE)
+dat$construct <- factor(dat$construct,levels=  c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b','trpa1','trpv4','pkd2l1','yfp'))
+
+names = c('mPiezo1','mPiezo2','mTRAAK','mTREK1','Mscl','Osca1.2','TMEM63a','TMEM63b','TRPA1','TRPV4','PKD2L1','YFP')
+
+```
+### Subset of Table:
+
+```{r headdat, echo=FALSE, include=TRUE}
+library(knitr)
+colnames(dat)[1] <- "uniqueID"
+kable(head(dat)[1:10])
+```
+
+## Prepare plot themes and aesthetics
+
+The following code will load the plotting libraries and font libraries to be used in creating the final plot. It also creates a custom theme function with starting plot parameters for publication quality figures.
+
+
+```{r prepplot,echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(ggplot2)
+library(ggbeeswarm)
+source("https://gist.githubusercontent.com/benmarwick/2a1bb0133ff568cbe28d/raw/fb53bd97121f7f9ce947837ef1a4c65a73bffb3f/geom_flat_violin.R")
+library(extrafont)
+loadfonts(device = "win")
+
+theme_paper <- function(base_size=10,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 10),
+            axis.text=element_text(size = 8, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+```
+
+## Plot Data
+
+The following code will create the final plot of, in this case, Threshold as a function of the expressed construct. The plot is a boxplot with overlayed individual datapoints.
+```{r pressure, echo=TRUE, include=TRUE, warning=FALSE}
+library(pals)
+
+ggplot(dat, aes(x=construct, y=thresh,fill=construct)) +
+  geom_boxplot(alpha=0.4, lwd=0.25)+
+  geom_beeswarm(shape=21, size = 1.5, alpha = 0.75,lwd=0.25)+
+  scale_x_discrete(labels = names)+
+  scale_fill_manual(values = glasbey(12))+
+  xlab("Construct") +
+  ylab("Threshold (pA)")+
+  ylim(c(0,175))+
+  theme_paper() +
+  theme(axis.text.x = element_text(angle=45,hjust=1))
+
+ggsave('agg_threshold.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
