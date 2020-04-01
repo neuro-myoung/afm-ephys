@@ -43,13 +43,12 @@ def find_threshvals(pd_groups, sum_df):
     wthresh_lst = []
     for ind, row in sum_df.iterrows():
         df = pd_groups.get_group(ind+1)
-        if row['peaki'] < (row['thresh'] + np.abs(row['offset'])):
+        if row['peaki'] < row['thresh']:
             val = 0
             fthresh_lst.append(None)
             wthresh_lst.append(None)
         else:
-            val = np.amax(np.where((df['absi_blsub'] < row['thresh'] +
-                                    row['offset']) & (df['ti'] < row['tpeaki'])))
+            val = np.amax(np.where((df['absi_blsub'] < row['thresh']) & (df['ti'] < row['tpeaki'])))
             fthresh_lst.append(df['force'].reset_index(drop=True)[val])
             wthresh_lst.append(df['work'].reset_index(drop=True)[val])
         val_lst.append(val)
@@ -142,7 +141,7 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     agg_df = agg_df.assign(
         delay=agg_df['tpeaki'] - agg_df['tpeakf'],
         seal=agg_df['vhold']/agg_df['leak'],
-        thresh=agg_df['offset'] + 5*agg_df['stdev']
+        thresh=np.abs(agg_df['offset']) + 5*agg_df['stdev']
     )
 
     col_lst = find_threshvals(grps_sub, agg_df)
