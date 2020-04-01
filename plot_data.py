@@ -28,7 +28,7 @@ class PlotData(object):
         self.horiz_dict = {'i_blsub': 'ti', 'force': 'tin0', 'work': 'tin0', 'position': 'tz'}
         self.height_dict = {'i_blsub': 2, 'force': 1, 'work': 1, 'position': 0.5}
 
-    def plot_sweep(self, sweep, vars, roi=None, scalebars=False, scalelabs=False):
+    def plot_sweep(self, sweep, vars, roi=None, scalebars=False, scalelabs=False, checksum=False):
         """
         This function will return a vertically stacked plot of traces in a single sweep.
 
@@ -64,10 +64,10 @@ class PlotData(object):
 
         for ax, x, y, color in zip(self.axs, xvals, vars, colors):
             ax.plot(self.plot_dat[x], self.plot_dat[y], color=color, linewidth=0.5)
-            self.plot_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+            self.plot_range = max(self.dat_sub[y]) - min(self.dat_sub[y])
             self.plot_domain = ax.get_xlim()[1] - ax.get_xlim()[0]
-            ax.set_ylim(np.min(self.dat[y]) - 0.05 * self.plot_range,
-                        np.max(self.dat[y]) + 0.05 * self.plot_range)
+            ax.set_ylim(np.min(self.dat_sub[y]) - 0.05 * self.plot_range,
+                        np.max(self.dat_sub[y]) + 0.05 * self.plot_range)
             ax.axis('off')
 
             if scalebars is True:
@@ -77,6 +77,11 @@ class PlotData(object):
 
             if scalelabs is True:
                 self.add_scalelabs(ax, y)
+
+            if checksum is True:
+                self.check_summary_data(ax, sweep-1, y)
+            else:
+                pass
 
         plt.tight_layout()
         plt.savefig(self.fullpath + '_ex-trace.pdf', dpi=300)
@@ -129,8 +134,12 @@ class PlotData(object):
             x1 = np.min(self.dat_sub['ti']) + 0.02 * self.plot_domain
             x2 = np.min(self.dat_sub['ti']) + 0.02 * self.plot_domain
 
-            y1 = (0.9 * np.min(self.dat_sub['i_blsub']) - (0.1*self.plot_range))
-            y2 = (0.9 * np.min(self.dat_sub['i_blsub']) + (0.02*self.plot_range))
+            if max(self.plot_dat['absi_blsub']) == max(self.plot_dat[var]):
+                y2 = (0.9 * np.max(self.dat_sub['i_blsub']) - ylen + (0.2*ylen))
+                y1 = (0.9 * np.max(self.dat_sub['i_blsub']) - ylen - (0.5*ylen))
+            else:
+                y1 = (0.9 * np.min(self.dat_sub['i_blsub']) - (0.1*self.plot_range))
+                y2 = (0.9 * np.min(self.dat_sub['i_blsub']) + (0.02*self.plot_range))
 
             ax.text(x1, y1, '100 ms', fontsize=6)
             ax.text(x2, y2, str(int(ylen)) + self.lab_dict[var], fontsize=6)
@@ -164,7 +173,7 @@ class PlotData(object):
             self.grps = self.dat.groupby('sweep')
         self.dat.to_hdf(self.fullpath + '_augmented.h5', key='df', mode='w')
 
-    def plot_all_sweeps(self, vars, roi=None, scalebars=False):
+    def plot_all_sweeps(self, vars, roi=None, scalebars=False, checksum=False):
         """
         This function will plot all the sweeps in a given experiment.
 
@@ -207,9 +216,9 @@ class PlotData(object):
                 ax = plt.Subplot(fig, inner[j])
                 ax.plot(self.plot_dat[xvals[j]], self.plot_dat[vars[j]],
                         color=colors[j], linewidth=0.5)
-                self.plot_range = max(self.dat[vars[j]]) - min(self.dat[vars[j]])
-                ax.set_ylim(np.min(self.dat[vars[j]]) - 0.05 * self.plot_range,
-                            np.max(self.dat[vars[j]]) + 0.05 * self.plot_range)
+                self.plot_range = max(self.dat_sub[vars[j]]) - min(self.dat_sub[vars[j]])
+                ax.set_ylim(np.min(self.dat_sub[vars[j]]) - 0.05 * self.plot_range,
+                            np.max(self.dat_sub[vars[j]]) + 0.05 * self.plot_range)
                 ax.axis('off')
 
                 if j == 0:
@@ -221,8 +230,39 @@ class PlotData(object):
                 else:
                     pass
 
+                if checksum is True:
+                    self.check_summary_data(ax, i, vars[j])
+                else:
+                    pass
+
                 fig.add_subplot(ax)
 
         plt.tight_layout()
         plt.savefig(self.fullpath + '_allsweeps.pdf', dpi=300)
         plt.show()
+
+    def check_summary_data(self, ax, sweep, val):
+        """
+        This function will overlay some of the calculated summary data as a check that the analysis makes sense.
+
+        Arguments:
+            ax: axis on which to plot the checks
+            sweep: the sweep from which to get the summary data from
+            val: the trace identity on which to plot the checks
+
+        Returns:
+            Vertical and horizontal lines showing where calculated parameters tpeakf, tpeaki, thresh, and threshind
+            fall in the data.
+        """
+        summary = pd.read_csv(self.fullpath + '_summary.csv')
+
+        ax.axvline(x=summary.loc[sweep, 'tpeaki'], color='k', linewidth=0.5)
+        ax.axvline(x=summary.loc[sweep, 'tpeakf'], color='b', linewidth=0.5)
+        ax.axvline(x=self.dat_sub['ti'].reset_index(drop=True)
+                   [summary.loc[sweep, 'threshind']], color='r', linewidth=0.5)
+
+        if (val == 'i_blsub') and (summary.loc[sweep, 'threshind'] != 0):
+            ax.axhline(y=summary.loc[sweep, 'thresh'], color='r', linewidth=0.5)
+            ax.axhline(y=-1*summary.loc[sweep, 'thresh'], color='r', linewidth=0.5)
+        else:
+            pass
