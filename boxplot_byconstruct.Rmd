@@ -1,6 +1,6 @@
 ---
 title: "Summary Plots"
-output: md_document
+output: github_document
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
