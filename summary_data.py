@@ -142,7 +142,7 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     agg_df = agg_df.assign(
         delay=agg_df['tpeaki'] - agg_df['tpeakf'],
         seal=agg_df['vhold']/agg_df['leak'],
-        thresh=agg_df['offset'] + 10*agg_df['stdev']
+        thresh=agg_df['offset'] + 5*agg_df['stdev']
     )
 
     col_lst = find_threshvals(grps_sub, agg_df)
