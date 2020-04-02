@@ -22,7 +22,24 @@ dat$construct <- factor(dat$construct,levels=  c('mp1','mp2','mtraak','mtrek1','
 names = c('mPiezo1','mPiezo2','mTraak','mTrek1','Mscl','Osca1.2','Tmem63a','Tmem63b','TrpA1','TrpV4','Pkd2L1','YFP')
 
 dat_triage <- subset(dat, construct %in% c('mtraak','mtrek1') | seal >= 0.3)
-dat_signal <- subset(dat_triage, peaki >= 150)
+dat_triage$wthresh[dat_triage$peaki<150]=NA
+sem <- function(x) sd(x)/sqrt(length(x))
+
+dat1 <- dat %>% 
+  filter((construct %in% c('mtraak', 'mtrek1')) | (seal >= 0.3)) %>%
+  filter(peaki > 150) %>%
+  group_by(construct) %>%
+  summarize(n = length(wthresh),
+            mean = mean(wthresh, na.rm=T),
+            sem = sem(wthresh),
+            max = max(wthresh, na.rm=T))
+
+dat2 <- dat %>% 
+  filter((construct %in% c('mtraak', 'mtrek1')) | (seal >= 0.3)) %>%
+  group_by(construct) %>%
+  summarize(ntot = length(wthresh))
+
+agg_dat <- merge(dat2,dat1, all =T)
 ```
 
 ### Subset of Table:
@@ -45,7 +62,6 @@ function with starting plot parameters for publication quality figures.
 ``` r
 library(ggplot2)
 library(ggbeeswarm)
-source("https://gist.githubusercontent.com/benmarwick/2a1bb0133ff568cbe28d/raw/fb53bd97121f7f9ce947837ef1a4c65a73bffb3f/geom_flat_violin.R")
 library(extrafont)
 loadfonts(device = "win")
 
@@ -62,19 +78,6 @@ theme_paper <- function(base_size=10,base_family="Arial") {
             panel.grid=element_blank()
       ))
 }
-
-
-
-counts <- data.frame(aggregate(wthresh ~ construct,dat_signal,length),
-                     aggregate(wthresh ~ construct, dat_signal, max)[2])
-colnames(counts)<- c('construct','n','max')
-
-noSig <- data.frame(c(aggregate(wthresh ~ construct, dat_triage, 'length')))
-colnames(noSig) <- c('construct','nnosig')
-
-fullcounts <- merge(counts, noSig, by = 'construct', all = TRUE)
-fullcounts$n[is.na(fullcounts$n)] <- 0
-fullcounts$max[is.na(fullcounts$max)] <- 0
 ```
 
 ## Plot Data
@@ -85,22 +88,50 @@ boxplot with overlayed individual datapoints.
 
 ``` r
 library(pals)
+library(cowplot)
+```
 
-p1 <- ggplot(dat_signal, aes(x=construct, y=wthresh,fill=construct)) +
-  geom_boxplot(alpha=0.4, lwd=0.25)+
-  geom_beeswarm(shape=21, size = 1.5, alpha = 0.75,lwd=0.25)+
+    ## 
+    ## ********************************************************
+
+    ## Note: As of version 1.0.0, cowplot does not change the
+
+    ##   default ggplot2 theme anymore. To recover the previous
+
+    ##   behavior, execute:
+    ##   theme_set(theme_cowplot())
+
+    ## ********************************************************
+
+``` r
+library(forcats)
+
+p1 <- ggplot(dat_triage, aes(x=construct, y=wthresh, fill=construct, colour=construct)) +
+  geom_violin(alpha=0.6, colour='gray28', lwd=0.25, outlier.shape=NA, scale="width")+
+  geom_errorbar(data = agg_dat, aes(ymin = mean-sem, ymax = mean+sem, y = mean), 
+                size=0.4, width=0,alpha=0.8, colour='black')+
+  geom_point(data=agg_dat, aes(construct, mean+sem),shape=16,size=0.05,
+             alpha=0.8,colour='black')+
+  geom_point(data=agg_dat, aes(construct, mean-sem),shape=16,size=0.05,
+             alpha=0.8,colour='black')+
+  geom_point(data=agg_dat, aes(construct, mean), fill='white',shape=21,size=1.5, stroke=0.25,
+             colour='black')+
+  geom_beeswarm(shape = 21, size = 1, alpha = 0.8,cex=1, stroke=0.25, 
+                   colour='black')+
   scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
                             'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
-  geom_text(data = fullcounts, aes(x=construct, y= max + 0.12*1200, 
-                                   label = paste('(',n,'/',nnosig,')', sep = "")),size=2)+
-  scale_fill_manual(values = glasbey(12))+
-  scale_y_continuous(breaks=c(0,200,400,600,800,1000,1200))+
+  scale_colour_brewer(palette='Set3')+
+  scale_fill_brewer(palette='Set3')+
+  geom_text(data = agg_dat, aes(x=construct, y= max + 0.10*1200, 
+                                   label = paste('(',n,'/',ntot,')', sep = "")),size=2, colour='black')+
   xlab("Construct") +
   ylab("Work Threshold (fJ)")+
   theme_paper() +
-  theme(axis.text.x = element_text(angle=45,hjust=1))
-
-p1
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+ 
+p1 
 ```
 
 ![](fig1d_files/figure-gfm/pressure-1.png)<!-- -->
