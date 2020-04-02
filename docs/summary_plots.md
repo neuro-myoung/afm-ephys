@@ -15,9 +15,14 @@ mappepd onto these factors for plot aesthetics.
 library(tidyverse)
 
 dat <- read.csv('agg_bychannel.csv', header=TRUE)
-dat$construct <- factor(dat$construct,levels=  c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b','trpa1','trpv4','pkd2l1','yfp'))
+dat$construct <- factor(dat$construct,levels=  c('mp1','mp2','mtraak','mtrek1','mscl','osca12',
+                                                 'tmem63a','tmem63b','trpa1','trpv4','pkd2l1','yfp'),
+                        ordered = T)
 
-names = c('mPiezo1','mPiezo2','mTRAAK','mTREK1','Mscl','Osca1.2','TMEM63a','TMEM63b','TRPA1','TRPV4','PKD2L1','YFP')
+names = c('mPiezo1','mPiezo2','mTraak','mTrek1','Mscl','Osca1.2','Tmem63a','Tmem63b','TrpA1','TrpV4','Pkd2L1','YFP')
+
+dat_triage <- subset(dat, construct %in% c('mtraak','mtrek1') | seal >= 0.3)
+dat_signal <- subset(dat_triage, peaki >= 150)
 ```
 
 ### Subset of Table:
@@ -47,7 +52,7 @@ loadfonts(device = "win")
 theme_paper <- function(base_size=10,base_family="Arial") {
   library(grid)
   (theme_bw(base_size = base_size, base_family = base_family)+
-      theme(text=element_text(color="black", size=6),
+      theme(text=element_text(color="black"),
             axis.title=element_text(size = 10),
             axis.text=element_text(size = 8, color = "black"),
             legend.position = "none",
@@ -58,9 +63,18 @@ theme_paper <- function(base_size=10,base_family="Arial") {
       ))
 }
 
-counts <- data.frame(aggregate(thresh ~ construct,dat,length),
-                     aggregate(thresh ~ construct, dat, max)[2])
+
+
+counts <- data.frame(aggregate(wthresh ~ construct,dat_signal,length),
+                     aggregate(wthresh ~ construct, dat_signal, max)[2])
 colnames(counts)<- c('construct','n','max')
+
+noSig <- data.frame(c(aggregate(wthresh ~ construct, dat_triage, 'length')))
+colnames(noSig) <- c('construct','nnosig')
+
+fullcounts <- merge(counts, noSig, by = 'construct', all = TRUE)
+fullcounts$n[is.na(fullcounts$n)] <- 0
+fullcounts$max[is.na(fullcounts$max)] <- 0
 ```
 
 ## Plot Data
@@ -72,21 +86,25 @@ boxplot with overlayed individual datapoints.
 ``` r
 library(pals)
 
-ggplot(dat, aes(x=construct, y=thresh,fill=construct)) +
+p1 <- ggplot(dat_signal, aes(x=construct, y=wthresh,fill=construct)) +
   geom_boxplot(alpha=0.4, lwd=0.25)+
   geom_beeswarm(shape=21, size = 1.5, alpha = 0.75,lwd=0.25)+
-  geom_text(data = counts, aes(x=construct, y= max + 0.12*200, label = paste('(',n,')', sep = "")))+
-  scale_x_discrete(labels = names)+
+  scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
+                            'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
+  geom_text(data = fullcounts, aes(x=construct, y= max + 0.12*1200, 
+                                   label = paste('(',n,'/',nnosig,')', sep = "")),size=2)+
   scale_fill_manual(values = glasbey(12))+
+  scale_y_continuous(breaks=c(0,200,400,600,800,1000,1200))+
   xlab("Construct") +
-  ylab("Threshold (pA)")+
-  ylim(c(0,200))+
+  ylab("Work Threshold (fJ)")+
   theme_paper() +
   theme(axis.text.x = element_text(angle=45,hjust=1))
+
+p1
 ```
 
 ![](C:/Users/HAL/afm-ephys/docs/summary_plots_files/figure-gfm/pressure-1.png)<!-- -->
 
 ``` r
-ggsave('agg_capacitance.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
+ggsave('agg_wthresh.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
 ```
