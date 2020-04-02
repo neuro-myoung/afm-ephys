@@ -47,7 +47,7 @@ loadfonts(device = "win")
 theme_paper <- function(base_size=10,base_family="Arial") {
   library(grid)
   (theme_bw(base_size = base_size, base_family = base_family)+
-      theme(text=element_text(color="black"),
+      theme(text=element_text(color="black", size=6),
             axis.title=element_text(size = 10),
             axis.text=element_text(size = 8, color = "black"),
             legend.position = "none",
@@ -57,6 +57,10 @@ theme_paper <- function(base_size=10,base_family="Arial") {
             panel.grid=element_blank()
       ))
 }
+
+counts <- data.frame(aggregate(thresh ~ construct,dat,length),
+                     aggregate(thresh ~ construct, dat, max)[2])
+colnames(counts)<- c('construct','n','max')
 ```
 
 ## Plot Data
@@ -71,11 +75,12 @@ library(pals)
 ggplot(dat, aes(x=construct, y=thresh,fill=construct)) +
   geom_boxplot(alpha=0.4, lwd=0.25)+
   geom_beeswarm(shape=21, size = 1.5, alpha = 0.75,lwd=0.25)+
+  geom_text(data = counts, aes(x=construct, y= max + 0.12*200, label = paste('(',n,')', sep = "")))+
   scale_x_discrete(labels = names)+
   scale_fill_manual(values = glasbey(12))+
   xlab("Construct") +
   ylab("Threshold (pA)")+
-  ylim(c(0,175))+
+  ylim(c(0,200))+
   theme_paper() +
   theme(axis.text.x = element_text(angle=45,hjust=1))
 ```
@@ -83,8 +88,5 @@ ggplot(dat, aes(x=construct, y=thresh,fill=construct)) +
 ![](C:/Users/HAL/afm-ephys/docs/summary_plots_files/figure-gfm/pressure-1.png)<!-- -->
 
 ``` r
-ggsave('agg_threshold.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
+ggsave('agg_capacitance.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to
-prevent printing of the R code that generated the plot.
