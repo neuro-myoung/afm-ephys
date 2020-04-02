@@ -13,7 +13,7 @@ This markdown document goes over how summary plots are constructed from a table 
 
 ## Load File
 
-The code below will load the aggregate data file and create an ordered list of factors from the constructs present.It also creates a list of names associated with each channel of interest that will later be mappepd onto these factors for plot aesthetics.
+The code below will load the aggregate data file and create an ordered list of factors from the constructs present.It also creates a list of names associated with each channel of interest that will later be mappepd onto these factors for plot aesthetics.The data is then triaged into a new dataframe called dat_triage based on having a seal quality > 300 Megaohms, a peak current greater than 150 pA.The mTraak and mTrek1 data are not subjected to this since recordings were made at 0 mV and the seal quality at the time of a given sweep cannot be reliably assessed. Finally, some aggregate functions are applied to the triaged dataset.
 
 ```{r loaddata, echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
 
@@ -47,12 +47,18 @@ dat2 <- dat %>%
 agg_dat <- merge(dat2,dat1, all =T)
 
 ```
-### Subset of Table:
+### Subset of triaged Data:
 
 ```{r headdat, echo=FALSE, include=TRUE}
 library(knitr)
 colnames(dat_triage)[1] <- "uniqueID"
 kable(head(dat_triage)[1:10])
+```
+
+### Aggregate data table
+
+```{r aggdat, echo=FALSE, include=TRUE}
+kable(agg_dat)
 ```
 
 ## Prepare plot themes and aesthetics
@@ -85,30 +91,20 @@ theme_paper <- function(base_size=10,base_family="Arial") {
 
 ## Plot Data
 
-The following code will create the final plot of, in this case, Threshold as a function of the expressed construct. The plot is a boxplot with overlayed individual datapoints.
+The following code will create the final plot of, in this case, Work Threshold as a function of the expressed construct. The plot is a violin plot with overlayed individual datapoints and a boxplot of the summary statistics. 
 ```{r pressure, echo=TRUE, include=TRUE, warning=FALSE}
-library(pals)
-library(cowplot)
-library(forcats)
 
 p1 <- ggplot(dat_triage, aes(x=construct, y=wthresh, fill=construct, colour=construct)) +
-  geom_violin(alpha=0.6, colour='gray28', lwd=0.25, outlier.shape=NA, scale="width")+
-  geom_errorbar(data = agg_dat, aes(ymin = mean-sem, ymax = mean+sem, y = mean), 
-                size=0.4, width=0,alpha=0.8, colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean+sem),shape=16,size=0.05,
-             alpha=0.8,colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean-sem),shape=16,size=0.05,
-             alpha=0.8,colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean), fill='white',shape=21,size=1.5, stroke=0.25,
-             colour='black')+
-  geom_beeswarm(shape = 21, size = 1, alpha = 0.8,cex=1, stroke=0.25, 
-                   colour='black')+
+  geom_violin(lwd=0.25, fill='white',colour='black')+
+  geom_boxplot(color='black',width=0.1,lwd=0.2, alpha=0.4, outlier.shape =NA)+
+  geom_quasirandom(shape=21, alpha=0.9, size = 1, stroke=0.25, colour='black', varwidth=T)+
   scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
                             'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
   scale_colour_brewer(palette='Set3')+
   scale_fill_brewer(palette='Set3')+
   geom_text(data = agg_dat, aes(x=construct, y= max + 0.10*1200, 
                                    label = paste('(',n,'/',ntot,')', sep = "")),size=2, colour='black')+
+  scale_y_continuous(breaks=c(250,500,750,1000,1250))+
   xlab("Construct") +
   ylab("Work Threshold (fJ)")+
   theme_paper() +

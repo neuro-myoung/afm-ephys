@@ -83,20 +83,16 @@ theme_paper <- function(base_size=10,base_family="Arial") {
 
 ## Plot Data
 
-The following code will create the final plot of, in this case, Threshold as a function of the expressed construct. The plot is a boxplot with overlayed individual datapoints.
+
+The following code will create the final plots of, in this case, capacitance and threshold as a function of the expressed construct. The plot is a violin plot with overlayed individual datapoints and a boxplot of the summary statistics. 
 ```{r pressure, echo=TRUE, include=TRUE, warning=FALSE}
 library(pals)
 library(cowplot)
 
 p1 <- ggplot(dat_triage, aes(x=construct, y=thresh, fill=construct, colour=construct)) +
-  geom_violin(alpha=0.6, colour='gray28', lwd=0.25, outlier.shape=NA, scale='width')+
-  geom_errorbar(data = aggthresh_dat, aes(ymin = mean-sem, ymax = mean+sem, y = mean), 
-                size=0.4, width=0,alpha=0.8, colour='black')+
-  geom_point(data=aggthresh_dat, aes(construct, mean+sem),shape=16,size=0.05, alpha=0.8,colour='black')+
-  geom_point(data=aggthresh_dat, aes(construct, mean-sem),shape=16,size=0.05, alpha=0.8,colour='black')+
-  geom_point(data=aggthresh_dat, aes(construct, mean), fill='white',shape=21,size=1.5, stroke=0.25, colour='black')+
-  geom_beeswarm(shape = 21, size = 0.75, alpha = 0.8,cex=1, stroke=0.25, 
-                   colour='black')+
+  geom_violin(lwd=0.25, fill='white',colour='black',scale='width')+
+  geom_boxplot(color='black',width=0.1,lwd=0.2, alpha=0.4, outlier.shape =NA)+
+  geom_quasirandom(shape=21, alpha=0.9, size = 1, stroke=0.25, colour='black', varwidth=T)+
   scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
                             'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
   scale_colour_brewer(palette='Set3')+
@@ -111,15 +107,14 @@ p1 <- ggplot(dat_triage, aes(x=construct, y=thresh, fill=construct, colour=const
         axis.title.x = element_blank(),
         axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
 
+p1
+ggsave('agg_thresh.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf)
+
+
 p2 <- ggplot(dat_triage, aes(x=construct, y=Cm, fill=construct, colour=construct)) +
-  geom_violin(alpha=0.6, colour='gray28', lwd=0.25, outlier.shape=NA,scale='width')+
-  geom_errorbar(data = aggcap_dat, aes(ymin = mean-sem, ymax = mean+sem, y = mean), 
-                size=0.4, width=0,alpha=0.8, colour='black')+
-  geom_point(data=aggcap_dat, aes(construct, mean+sem),shape=16,size=0.05, alpha=0.8,colour='black')+
-  geom_point(data=aggcap_dat, aes(construct, mean-sem),shape=16,size=0.05, alpha=0.8,colour='black')+
-  geom_point(data=aggcap_dat, aes(construct, mean), fill='white',shape=21,size=1.5, stroke=0.25, colour='black')+
-  geom_beeswarm(shape = 21, size = 0.75, alpha = 0.8,cex=1, stroke=0.25, 
-                   colour='black')+
+  geom_violin(lwd=0.25, fill='white',colour='black', scale='width')+
+  geom_boxplot(color='black',width=0.1,lwd=0.2, alpha=0.4, outlier.shape =NA)+
+  geom_quasirandom(shape=21, alpha=0.9, size = 1, stroke=0.25, colour='black', varwidth=T)+
   scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
                             'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
   scale_colour_brewer(palette='Set3')+
@@ -131,13 +126,7 @@ p2 <- ggplot(dat_triage, aes(x=construct, y=Cm, fill=construct, colour=construct
   theme(axis.text.x = element_text(angle=45,hjust=1),
         axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
         axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
-
-
-
-plot_grid(p1,NULL,p2, align = 'vh', rel_heights=c(1,-0.2,1),nrow=3)
-
-ggsave('agg_capthresh.pdf', plot=last_plot(), dpi=300, width=5, height=6, units= "in", dev=cairo_pdf)
-
-
+p2
+ggsave(ggsave('agg_cap.pdf', plot=last_plot(), dpi=300, width=5, height=3, units= "in", dev=cairo_pdf))
 ```
 

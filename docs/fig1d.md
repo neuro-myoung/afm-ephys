@@ -9,7 +9,13 @@ a table containing aggregate data.
 The code below will load the aggregate data file and create an ordered
 list of factors from the constructs present.It also creates a list of
 names associated with each channel of interest that will later be
-mappepd onto these factors for plot aesthetics.
+mappepd onto these factors for plot aesthetics.The data is then triaged
+into a new dataframe called dat\_triage based on having a seal quality
+\> 300 Megaohms, a peak current greater than 150 pA.The mTraak and
+mTrek1 data are not subjected to this since recordings were made at 0 mV
+and the seal quality at the time of a given sweep cannot be reliably
+assessed. Finally, some aggregate functions are applied to the triaged
+dataset.
 
 ``` r
 library(tidyverse)
@@ -42,7 +48,7 @@ dat2 <- dat %>%
 agg_dat <- merge(dat2,dat1, all =T)
 ```
 
-### Subset of Table:
+### Subset of triaged Data:
 
 | uniqueID           |     date | construct | cell | protocol | sweep | velocity | kcant | dkcant | osm |
 | :----------------- | -------: | :-------- | ---: | :------- | ----: | -------: | ----: | -----: | --: |
@@ -52,6 +58,23 @@ agg_dat <- merge(dat2,dat1, all =T)
 | 20190918-3-scan-80 | 20190918 | mtraak    |    3 | scan-80  |    11 |       40 |  0.75 |   0.04 | 321 |
 | 20191001-1-scan-80 | 20191001 | mtraak    |    1 | scan-80  |     6 |       40 |  1.03 |   0.06 | 316 |
 | 20191001-2-scan-80 | 20191001 | mtraak    |    2 | scan-80  |     6 |       40 |  1.03 |   0.06 | 318 |
+
+### Aggregate data table
+
+| construct | ntot |  n |      mean |       sem |       max |
+| :-------- | ---: | -: | --------: | --------: | --------: |
+| mp1       |   15 | 11 | 275.71293 |  56.85369 |  780.9153 |
+| mp2       |   13 | 12 | 141.54324 |  19.47105 |  267.3789 |
+| mtraak    |   21 | 18 | 145.57287 |  20.50905 |  419.2840 |
+| mtrek1    |    6 |  6 |  85.43822 |  27.76754 |  175.4537 |
+| mscl      |   12 |  6 | 614.30698 | 151.51723 | 1153.6275 |
+| osca12    |    4 |  2 | 248.08354 |  36.68369 |  284.7672 |
+| tmem63a   |    4 |  3 | 663.10419 | 239.10188 |  987.8130 |
+| tmem63b   |    2 | NA |        NA |        NA |        NA |
+| trpa1     |    4 |  1 | 452.31677 |        NA |  452.3168 |
+| trpv4     |    1 | NA |        NA |        NA |        NA |
+| pkd2l1    |    2 |  1 | 631.82208 |        NA |  631.8221 |
+| yfp       |    6 |  1 | 927.54818 |        NA |  927.5482 |
 
 ## Prepare plot themes and aesthetics
 
@@ -82,48 +105,23 @@ theme_paper <- function(base_size=10,base_family="Arial") {
 
 ## Plot Data
 
-The following code will create the final plot of, in this case,
-Threshold as a function of the expressed construct. The plot is a
-boxplot with overlayed individual datapoints.
+The following code will create the final plot of, in this case, Work
+Threshold as a function of the expressed construct. The plot is a violin
+plot with overlayed individual datapoints and a boxplot of the summary
+statistics.
 
 ``` r
-library(pals)
-library(cowplot)
-```
-
-    ## 
-    ## ********************************************************
-
-    ## Note: As of version 1.0.0, cowplot does not change the
-
-    ##   default ggplot2 theme anymore. To recover the previous
-
-    ##   behavior, execute:
-    ##   theme_set(theme_cowplot())
-
-    ## ********************************************************
-
-``` r
-library(forcats)
-
 p1 <- ggplot(dat_triage, aes(x=construct, y=wthresh, fill=construct, colour=construct)) +
-  geom_violin(alpha=0.6, colour='gray28', lwd=0.25, outlier.shape=NA, scale="width")+
-  geom_errorbar(data = agg_dat, aes(ymin = mean-sem, ymax = mean+sem, y = mean), 
-                size=0.4, width=0,alpha=0.8, colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean+sem),shape=16,size=0.05,
-             alpha=0.8,colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean-sem),shape=16,size=0.05,
-             alpha=0.8,colour='black')+
-  geom_point(data=agg_dat, aes(construct, mean), fill='white',shape=21,size=1.5, stroke=0.25,
-             colour='black')+
-  geom_beeswarm(shape = 21, size = 1, alpha = 0.8,cex=1, stroke=0.25, 
-                   colour='black')+
+  geom_violin(lwd=0.25, fill='white',colour='black')+
+  geom_boxplot(color='black',width=0.1,lwd=0.2, alpha=0.4, outlier.shape =NA)+
+  geom_quasirandom(shape=21, alpha=0.9, size = 1, stroke=0.25, colour='black', varwidth=T)+
   scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl','osca12','tmem63a','tmem63b',
                             'trpa1','trpv4','pkd2l1','yfp'), labels = names)+
   scale_colour_brewer(palette='Set3')+
   scale_fill_brewer(palette='Set3')+
   geom_text(data = agg_dat, aes(x=construct, y= max + 0.10*1200, 
                                    label = paste('(',n,'/',ntot,')', sep = "")),size=2, colour='black')+
+  scale_y_continuous(breaks=c(250,500,750,1000,1250))+
   xlab("Construct") +
   ylab("Work Threshold (fJ)")+
   theme_paper() +
