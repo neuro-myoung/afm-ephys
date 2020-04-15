@@ -4,7 +4,8 @@ import numpy as np
 
 axlab_dict = {'i_blsub': 'Current', 'force': 'Force',
               'work': 'Work', 'position': 'Position',
-              'ti': 'Time', 'tin0': 'Time', 'tz': 'Time'}
+              'ti': 'Time', 'tin0': 'Time', 'tz': 'Time',
+              'absi_blsub': 'Absolute Current'}
 
 axcol_dict = {'i_blsub': 'k', 'force': 'b', 'work': 'm', 'position': 'g'}
 
@@ -182,3 +183,58 @@ def peak_lines(df, ax, ymin):
     for i in loc_lst:
         ax.axvline(x=i, ymin=ymin, ymax=1.2, c="red", linewidth=0.5, zorder=0,
                    clip_on=False)
+
+
+def analysis_schematic(folder, filename, groups, sweep, vars, integrate=False,
+                       axparams=axparam_dict):
+    """
+    This function will take as an argument a sweep defined by a grouped
+    dataframe and sweep number and the variables to be plotted against one
+    another to return a simple plot of the two variables. If integrate is set
+    to true a fill will be introduced under the line.
+    """
+    summary = pd.read_csv(folder + filename + '_summary.csv')
+    plot_dat = groups.get_group(sweep).reset_index(drop=True)
+    fig, ax = plt.subplots(nrows=1, dpi=300, figsize=(3, 3))
+    [approach, retract] = split_sweep(plot_dat)
+    ax.plot(approach[vars[0]], approach[vars[1]], 'k-', linewidth=0.5, alpha=0.6)
+    x1 = plot_dat['work'][max(approach['index']) - 100]
+    x2 = plot_dat['work'][max(approach['index'])]
+    y1 = plot_dat['absi_blsub'][max(approach['index']) - 100]
+    y2 = plot_dat['absi_blsub'][max(approach['index'])]
+    x = np.linspace(x1, x2, num=1000)
+    m = ((y2-y1)/(x2 - x1))
+    print(x2)
+    print(x1)
+    b = (x2*y1 - x1*y2)/(x2-x1)
+    y = m*x + b
+    if integrate is True:
+        ax.fill_between(approach[vars[0]], 0, approach[vars[1]],
+                        facecolor='m', alpha=0.6)
+
+        ax.text(0.72, 0.15, 'Work', fontsize=8,
+                transform=ax.transAxes)
+    else:
+        pass
+    ax.hlines(y=summary.loc[3, 'thresh'], xmin=0, xmax=summary.loc[3, 'wthresh'],
+              color='red', linewidth=0.75, linestyle='dashed')
+    ax.vlines(x=summary.loc[3, 'wthresh'], ymin=-50, ymax=summary.loc[3, 'thresh'],
+              color='red', linewidth=0.75, linestyle='dashed')
+    ax.set_xlim(0, max(plot_dat['work']))
+    ax.set_ylim(-50, max(plot_dat['absi_blsub']))
+    ax.text(0.05, 0.09, 'Threshold', fontsize=8,
+            transform=ax.transAxes)
+    ax.text(0.5, 0.8, 'Sensitivity', fontsize=8,
+            transform=ax.transAxes)
+    ax.plot(x, y, 'r--', linewidth=0.75)
+    ax.hlines(y=y[0], xmin=x[0], xmax=x[-1], color='red', linewidth=0.75, linestyle='dashed')
+    ax.vlines(x=x[-1], ymin=y[0], ymax=y[-1],
+              color='red', linewidth=0.75, linestyle='dashed')
+    axis_arrows(fig, ax, vars[0], vars[1], axparams['labs'])
+    plt.tight_layout()
+    plt.savefig(folder + filename + '.pdf', format="pdf", dpi=300)
+    plt.show()
+
+
+x = loadFile('bychannel/mp2/20190816_hek293T_mp2_c2')
+analysis_schematic('bychannel/mp2/', '20190816_hek293T_mp2_c2', x, 4, ['work', 'absi_blsub'])

@@ -53,10 +53,6 @@ def find_threshvals(pd_groups, sum_df):
             wthresh_lst.append(df['work'].reset_index(drop=True)[val])
         val_lst.append(val)
 
-    return([pd.Series(val_lst),
-            pd.Series(fthresh_lst),
-            pd.Series(wthresh_lst)])
-
 
 def summarize(fullpath, roi=None, blsub=[50, 150]):
     """
@@ -104,7 +100,7 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     """
 
     # Read in required files
-    rmstring = '_scan-80'
+    rmstring = '_nocont'
     fullpath = fullpath.replace(rmstring, '')
     param = pd.read_csv(fullpath + '_params.csv', header=0, index_col=0)
     dat = pd.read_hdf(fullpath + '_augmented.h5')
