@@ -43,6 +43,7 @@ def find_threshvals(pd_groups, sum_df):
     wthresh_lst = []
     for ind, row in sum_df.iterrows():
         df = pd_groups.get_group(ind+1)
+
         if row['peaki'] < row['thresh']:
             val = 0
             fthresh_lst.append(None)
@@ -52,6 +53,10 @@ def find_threshvals(pd_groups, sum_df):
             fthresh_lst.append(df['force'].reset_index(drop=True)[val])
             wthresh_lst.append(df['work'].reset_index(drop=True)[val])
         val_lst.append(val)
+
+    return([pd.Series(val_lst),
+            pd.Series(fthresh_lst),
+            pd.Series(wthresh_lst)])
 
 
 def summarize(fullpath, roi=None, blsub=[50, 150]):
@@ -100,11 +105,10 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     """
 
     # Read in required files
-    rmstring = '_nocont'
+    rmstring = '_scan-80'
     fullpath = fullpath.replace(rmstring, '')
     param = pd.read_csv(fullpath + '_params.csv', header=0, index_col=0)
     dat = pd.read_hdf(fullpath + '_augmented.h5')
-
     nsweeps = int(param.loc['nsweeps', 'val'])
 
     if roi is not None:

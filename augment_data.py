@@ -51,7 +51,7 @@ def load_file(folder, filename, headers=header_list):
     params = pd.read_csv(folder + filename + '_params.csv', sep=",",
                          header=0, index_col=0)
 
-    nsweeps = int(len(dat)/75000)
+    nsweeps = int(len(dat)/60000)
     print(filename)
     print(nsweeps)
     time_cols = [col for col in dat if col.startswith('t')]
@@ -143,7 +143,7 @@ def augment_file(folder, filename, window):
 
     augmented_dat = load_file(folder, filename, headers=header_list)
 
-    if int(len(augmented_dat)/75000) == 1:
+    if int(len(augmented_dat)/60000) == 1:
         i_blsub = bl_subtraction(augmented_dat, 'i', window)
         in0_blsub = bl_subtraction(augmented_dat, 'in0', window)
         deflection = in0_blsub * mean_sensitivity
