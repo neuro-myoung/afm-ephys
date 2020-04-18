@@ -1,0 +1,106 @@
+---
+title: "Untitled"
+author: "Michael Young"
+date: "4/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+
+
+library(tidyverse)
+
+dat <- read.csv('all_recs.csv', header=TRUE)
+dat <- subset(dat, construct %in% c('mtraak','mp1','mp2'))
+dat$construct<-factor(dat$construct,levels=  c('mp1','mp2','mtraak'),
+                        ordered = T)
+
+
+dat_triage <- subset(dat, construct %in% c('mtraak') | seal >= 0.3)
+dat_triage$wthresh[dat_triage$peaki<150]=NA
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r prepplot,echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+library(extrafont)
+loadfonts(device = "win")
+
+theme_paper <- function(base_size=10,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 10),
+            axis.text=element_text(size = 8, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+theme_pp <- function(base_size=14,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 14),
+            axis.text=element_text(size = 12, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+```
+
+```{r}
+library(RColorBrewer)
+
+ncolors <- 12
+newPalette <- colorRampPalette(brewer.pal(8, "Set1"))
+col_adj <- c(newPalette(12)[1],
+             newPalette(12)[2],
+             newPalette(12)[4])
+
+levels(dat_triage$construct) <- c("mPiezo1", "mPiezo2", "mTraak")
+
+p1 <- ggplot(dat_triage, aes(x=Cm, y=wthresh,group=construct, fill=construct, colour=construct)) +
+  facet_grid(cols = vars(construct))+
+  scale_y_continuous(limits=c(0,820), breaks=seq(0,800,200))+
+  scale_colour_manual(values=col_adj)+
+  scale_fill_manual(values=col_adj)+
+  geom_smooth(method='lm', se=FALSE)+
+    geom_point(shape=16,alpha=0.8)+
+  stat_cor(method = "pearson", label.x = 3, label.y = 820)+
+  xlab('Capacitance (pF)')+
+  ylab('Work Threshold (fJ)')+
+  theme_pp() +
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        strip.background = element_rect(fill="white", size=1),
+        strip.text = element_text(size = 14, color = "black"))
+ 
+p1 
+ggsave('cm_corr.pdf', plot=last_plot(), dpi=300, width=7, height=4, units= "in", dev=cairo_pdf)
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

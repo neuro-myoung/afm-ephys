@@ -1,0 +1,147 @@
+---
+title: "Summary Plots"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=5, 
+                      fig.height=3,
+                      dpi=300)
+```
+
+This markdown document goes over how summary plots are constructed from a table containing aggregate data.
+
+## Load File
+
+The code below will load the aggregate data file and create an ordered list of factors from the constructs present.It also creates a list of names associated with each channel of interest that will later be mappepd onto these factors for plot aesthetics.The data is then triaged into a new dataframe called dat_triage based on having a seal quality > 300 Megaohms, a peak current greater than 150 pA.The mTraak and mTrek1 data are not subjected to this since recordings were made at 0 mV and the seal quality at the time of a given sweep cannot be reliably assessed. For this particular analysis we further filter the group to only look at the subset including Piezo1, Piezo2, mTraak, mTrek1, and Mscl. Finally, some aggregate functions are applied to the triaged dataset.
+
+```{r loaddata, echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+dat <- read.csv('agg/agg_bychannel.csv', header=TRUE)
+dat$construct <- factor(dat$construct,levels=  c('mp1','mp2','mtraak','mtrek1','mscl','osca12',
+                                                 'tmem63a','tmem63b','trpa1','trpv4','pkd2l1','yfp'),
+                        ordered = T)
+
+names = c('mPiezo1','mPiezo2','mTraak','mTrek1','Mscl')
+
+
+sem <- function(x) sd(x)/sqrt(length(x))
+
+dat_triage <- dat %>% 
+  filter((construct %in% c('mtraak', 'mtrek1')) | (seal >= 0.3)) %>%
+  filter(construct %in% c('mp1','mp2','mtraak','mtrek1','mscl')) %>%
+  filter(peaki > 150)
+
+agg_dat <- dat_triage %>%
+  group_by(construct) %>%
+  summarize(n = length(delay),
+            mean = mean(delay, na.rm=T),
+            sem = sem(delay),
+            max = max(delay, na.rm=T))
+
+```
+### Subset of triaged Data:
+
+```{r headdat, echo=FALSE, include=TRUE}
+library(knitr)
+colnames(dat_triage)[1] <- "uniqueID"
+kable(head(dat_triage)[1:10])
+```
+
+### Aggregate data table
+
+```{r aggdat, echo=FALSE, include=TRUE}
+kable(agg_dat)
+```
+
+## Prepare plot themes and aesthetics
+
+The following code will load the plotting libraries and font libraries to be used in creating the final plot. It also creates a custom theme function with starting plot parameters for publication quality figures.
+
+
+```{r prepplot,echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(ggplot2)
+library(ggbeeswarm)
+library(extrafont)
+loadfonts(device = "win")
+
+theme_paper <- function(base_size=10,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 10),
+            axis.text=element_text(size = 8, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+theme_pp <- function(base_size=14,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 14),
+            axis.text=element_text(size = 12, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+
+```
+
+### Comparison within channel families
+
+Comparisons were made using t.test within channel families (* : p < 0.05, ** : p < 0.01, *** : p < 0.001).
+
+```{r ttest, echo=TRUE, include=TRUE}
+t.test(subset(dat_triage, construct == 'mp1')$delay,subset(dat_triage, construct == 'mp2')$delay)
+t.test(subset(dat_triage, construct == 'mtraak')$delay,subset(dat_triage, construct == 'mtrek1')$delay)
+```
+
+## Plot Data
+
+The following code will create the final plot of, in this case, Delay as a function of the expressed construct. The plot is a violin plot with overlayed individual datapoints and a boxplot of the summary statistics. 
+```{r pressure, echo=TRUE, include=TRUE, warning=FALSE}
+library(RColorBrewer)
+
+ncolors <- 12
+newPalette <- colorRampPalette(brewer.pal(8, "Set1"))
+col_adj <- c(newPalette(12)[1],
+             newPalette(12)[2],
+             newPalette(12)[4],
+             newPalette(12)[5],
+             newPalette(12)[3])
+
+p1 <- ggplot(dat_triage, aes(x=construct, y=delay, fill=construct, colour=construct)) +
+  geom_beeswarm(size=1,shape=21,color='black',beeswarmArgs=list(side=1), stroke=0.2,alpha=0.8)+
+  geom_boxplot(colour='black',width=0.4,lwd=0.3, alpha=0.8, outlier.shape =NA, position = position_nudge(x = -0.3, y = 0))+
+  scale_x_discrete(breaks=c('mp1','mp2','mtraak','mtrek1','mscl'), labels = names)+
+  geom_segment(aes(x=1,xend=2,y=18,yend=18),size=0.5, colour='black')+
+  geom_segment(aes(x=3,xend=4,y=18,yend=18),size=0.5, colour='black')+
+  annotate("text", x=1.5,y=19, label='***', size=3)+
+  annotate("text", x=3.5,y=19, label='***', size=3)+
+  scale_colour_manual(values=col_adj)+
+  scale_fill_manual(values=col_adj)+
+  scale_y_continuous(breaks=seq(-5,20,5))+
+  xlab("Construct") +
+  ylab("Delay (ms)")+
+  theme_pp() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+ 
+p1 
+ggsave('agg_wthresh.pdf', plot=last_plot(), dpi=300, width=3.5, height=5, units= "in", dev=cairo_pdf)
+
+```
+

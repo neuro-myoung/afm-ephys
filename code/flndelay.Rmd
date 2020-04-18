@@ -1,0 +1,140 @@
+---
+title: "Summary Plots"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=5, 
+                      fig.height=3,
+                      dpi=300)
+```
+
+This markdown document goes over how summary plots are constructed from a table containing aggregate data.
+
+## Load File
+
+The code below will load the aggregate data file and create an ordered list of factors from the constructs present.It also creates a list of names associated with each channel of interest that will later be mappepd onto these factors for plot aesthetics.The data is then triaged into a new dataframe called dat_triage based on having a seal quality > 300 Megaohms, a peak current greater than 150 pA.The mTraak and mTrek1 data are not subjected to this since recordings were made at 0 mV and the seal quality at the time of a given sweep cannot be reliably assessed. Finally, some aggregate functions are applied to the triaged dataset.
+
+```{r loaddata, echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+dat <- read.csv('modulators/agg_flna.csv', header=TRUE)
+dat$construct <- factor(dat$construct,levels=  c('mp1','mp1flna','mp2','mp2flna','flna'),
+                        ordered = T)
+dat <- subset(dat, dat$construct != 'flna')
+
+names = c('mPiezo1','mPiezo1 + FlnA','mPiezo2', 'mPiezo2 + FlnA')
+
+dat_triage <- subset(dat, construct %in% c('mp1', 'mp2','mp1flna','mp2flna') & seal >= 0.3)
+dat_triage$delay[dat_triage$peaki<150]=NA
+sem <- function(x) sd(x)/sqrt(length(x))
+
+dat1 <- dat %>% 
+  filter((construct %in% c('mtraak', 'mtrek1')) | (seal >= 0.3)) %>%
+  filter(peaki > 150) %>%
+  group_by(construct) %>%
+  summarize(n = length(delay),
+            mean = mean(delay, na.rm=T),
+            sem = sem(delay),
+            max = max(delay, na.rm=T))
+
+dat2 <- dat %>% 
+  filter((construct %in% c('mtraak', 'mtrek1')) | (seal >= 0.3)) %>%
+  group_by(construct) %>%
+  summarize(ntot = length(delay))
+
+agg_dat <- merge(dat2,dat1, all =T)
+
+```
+### Subset of triaged Data:
+
+```{r headdat, echo=FALSE, include=TRUE}
+library(knitr)
+colnames(dat_triage)[1] <- "uniqueID"
+kable(head(dat_triage)[1:10])
+```
+
+### Aggregate data table
+
+```{r aggdat, echo=FALSE, include=TRUE}
+kable(agg_dat)
+```
+
+## Prepare plot themes and aesthetics
+
+The following code will load the plotting libraries and font libraries to be used in creating the final plot. It also creates a custom theme function with starting plot parameters for publication quality figures.
+
+
+```{r prepplot,echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+
+library(ggplot2)
+library(ggbeeswarm)
+library(extrafont)
+loadfonts(device = "win")
+
+theme_paper <- function(base_size=10,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 10),
+            axis.text=element_text(size = 8, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+
+theme_pp <- function(base_size=14,base_family="Arial") {
+  library(grid)
+  (theme_bw(base_size = base_size, base_family = base_family)+
+      theme(text=element_text(color="black"),
+            axis.title=element_text(size = 14),
+            axis.text=element_text(size = 12, color = "black"),
+            legend.position = "none",
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            panel.grid=element_blank()
+      ))
+}
+
+```
+
+## Plot Data
+
+The following code will create the final plot of, in this case, Work Threshold as a function of the expressed construct. The plot is a violin plot with overlayed individual datapoints and a boxplot of the summary statistics. 
+```{r pressure, echo=TRUE, include=TRUE, warning=FALSE}
+library(RColorBrewer)
+ncolors <- 12
+newPalette <- colorRampPalette(brewer.pal(8, "Set1"))
+
+col_adj <- c(newPalette(12)[1],lighten(newPalette(12)[1],0.5),
+             newPalette(12)[2],lighten(newPalette(12)[2],0.5))
+
+p1 <- ggplot(dat_triage, aes(x=construct, y=delay, fill=construct, colour=construct)) +
+  geom_beeswarm(size=1,shape=21,color='black',beeswarmArgs=list(side=1), stroke=0.2,alpha=0.8)+
+  geom_boxplot(colour='black',width=0.4,lwd=0.3, alpha=0.8, outlier.shape =NA, position = position_nudge(x = -0.3, y = 0))+
+  scale_x_discrete(breaks=c('mp1','mp1flna','mp2','mp2flna'), labels = names)+
+  scale_colour_manual(values=col_adj)+
+  scale_fill_manual(values=col_adj)+
+  geom_text(data = agg_dat, aes(x=construct, y= max + 0.10*15, 
+                                   label = paste('(',n,'/',ntot,')', sep = "")),size=2.5, colour='black',
+            position=position_nudge(x=-0.15))+
+  scale_y_continuous(breaks=seq(0,10,2.5))+
+  xlab("Construct") +
+  ylab("Delay (ms)")+
+  theme_pp() +
+  theme(axis.text.x = element_text(angle=45,hjust=1),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+ 
+p1 
+ggsave('agg_delay.pdf', plot=last_plot(), dpi=300, width=3, height=5, units= "in", dev=cairo_pdf)
+
+x[1]
+```
+
