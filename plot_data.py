@@ -12,11 +12,12 @@ class PlotData(object):
     that can be plotted using the defined methods.
     """
 
-    def __init__(self, file_path):
-        self.fullpath = file_path
-        self.dat = pd.read_hdf(self.fullpath + '_augmented.h5')
+    def __init__(self, folder, filename):
+        self.filename = filename
+        self.folder = folder
+        self.dat = pd.read_hdf(self.folder + self.filename + '_augmented.h5')
         self.dat['position'] /= 1000
-        self.params = pd.read_csv(self.fullpath + '_params.csv')
+        self.params = pd.read_csv(self.folder+'/params/' + self.filename + '_params.csv')
         self.grps = self.dat.groupby('sweep')
 
         # Dictionaries for axis customization based on variable plotted.
@@ -84,7 +85,7 @@ class PlotData(object):
                 pass
 
         plt.tight_layout()
-        plt.savefig(self.fullpath + '_ex-trace.pdf', dpi=300)
+        plt.savefig(self.folder + self.filename + '_ex-trace.pdf', dpi=300)
         plt.show()
 
     def add_scalebars(self, ax, var):
@@ -171,7 +172,7 @@ class PlotData(object):
         else:
             self.dat = self.dat[self.dat['sweep'] != sweeps]
             self.grps = self.dat.groupby('sweep')
-        self.dat.to_hdf(self.fullpath + '_augmented.h5', key='df', mode='w')
+        self.dat.to_hdf(self.folder + self.filename + '_augmented.h5', key='df', mode='w')
 
     def plot_all_sweeps(self, vars, roi=None, scalebars=False, checksum=False):
         """
@@ -238,7 +239,7 @@ class PlotData(object):
                 fig.add_subplot(ax)
 
         plt.tight_layout()
-        plt.savefig(self.fullpath + '_allsweeps.pdf', dpi=300)
+        plt.savefig(self.folder + self.filename + '_allsweeps.pdf', dpi=300)
         plt.show()
 
     def check_summary_data(self, ax, sweep, val):
@@ -254,7 +255,7 @@ class PlotData(object):
             Vertical and horizontal lines showing where calculated parameters tpeakf, tpeaki, thresh, and threshind
             fall in the data.
         """
-        summary = pd.read_csv(self.fullpath + '_summary.csv')
+        summary = pd.read_csv(self.folder + self.filename + '_summary.csv')
 
         ax.axvline(x=summary.loc[sweep, 'tpeaki'], color='k', linewidth=0.25)
         ax.axvline(x=summary.loc[sweep, 'tpeakf'], color='b', linewidth=0.25)

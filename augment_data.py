@@ -49,9 +49,9 @@ def load_files(folder, filename, protocol, headers=header_list):
     dat = pd.read_csv(folder + dat_file, sep=",", header=None,
                       names=headers)
 
-    params = pd.read_csv('params/' + filename + '_params.csv', sep=",",
+    params = pd.read_csv(folder + 'params/' + filename + '_params.csv', sep=",",
                          header=0, index_col=0)
-    sens_file = pd.read_csv('sensitivity/' + filename + '_sensitivity.csv', sep=",",
+    sens_file = pd.read_csv(folder + 'sensitivity/' + filename + '_sensitivity.csv', sep=",",
                             header=None)
 
     nsweeps = int(params.loc['nsweeps', ][0])

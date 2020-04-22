@@ -59,7 +59,7 @@ def find_threshvals(pd_groups, sum_df):
             pd.Series(wthresh_lst)])
 
 
-def summarize(fullpath, roi=None, blsub=[50, 150]):
+def summarize(folder, filename, protocol, roi=None, blsub=[50, 150]):
     """
     The following function will use an augmented file and parameter file in
     order to make a summary data file.
@@ -105,9 +105,9 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     """
 
     # Read in required files
-    rmstring = '_scan-80'
-    fullpath = fullpath.replace(rmstring, '')
-    param = pd.read_csv(fullpath + '_params.csv', header=0, index_col=0)
+    rmstring = '_' + protocol
+    fullpath = (folder+filename).replace(rmstring, '')
+    param = pd.read_csv(folder + '/params/' + filename + '_params.csv', header=0, index_col=0)
     dat = pd.read_hdf(fullpath + '_augmented.h5')
     nsweeps = int(param.loc['nsweeps', 'val'])
 
@@ -130,8 +130,10 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
         tpeakf=dat_sub['tin0'][(grps_sub['force'].idxmax())].reset_index(drop=True),
         tpeaki=dat_sub['ti'][(grps_sub['absi_blsub'].idxmax())].reset_index(drop=True),
         tpeakw=dat_sub['tin0'][(grps_sub['work'].idxmax())].reset_index(drop=True),
+        wpeakf=dat_sub['work'][(grps_sub['force'].idxmax())].reset_index(drop=True),
         leak=grps.apply(window_val, 'i', blsub[0], blsub[1], 'mean').reset_index(drop=True),
-        offset=grps.apply(window_val, 'i_blsub', roi[0]-50, roi[0], 'mean').reset_index(drop=True),
+        offset=grps.apply(window_val, 'i_blsub', roi[0]+50,
+                          roi[0]+100, 'mean').reset_index(drop=True),
         stdev=grps.apply(window_val, 'i', roi[0]-100, roi[0], 'sd').reset_index(drop=True),
         vhold=grps.apply(window_val, 'v', blsub[0], blsub[1], 'mean').reset_index(drop=True),
         vstep=grps.apply(window_val, 'v', roi[0], roi[1], 'mean').reset_index(drop=True),
@@ -169,7 +171,7 @@ def summarize(fullpath, roi=None, blsub=[50, 150]):
     # Reorder columns of dataframe.
     agg_df = agg_df[['uniqueID', 'date', 'construct', 'cell', 'protocol', 'sweep', 'velocity', 'kcant', 'dkcant',
                      'osm', 'Rs', 'Rscomp', 'Cm', 'seal', 'vhold', 'vstep', 'peaki', 'tpeaki', 'peakf', 'tpeakf',
-                     'peakw', 'tpeakw', 'leak', 'offset', 'stdev', 'seal', 'delay', 'thresh', 'threshind',  'fthresh',
+                     'peakw', 'tpeakw', 'wpeakf', 'leak', 'offset', 'stdev', 'delay', 'thresh', 'threshind',  'fthresh',
                      'wthresh']]
 
     agg_df.to_csv(fullpath + '_summary.csv', sep=',', index=False)
@@ -192,7 +194,6 @@ def summarize_all(folder, protocol, roi=None, blsub=[50, 150]):
 :        """
     rmstring = '_' + protocol + '.asc'
     file_list = [f.replace(rmstring, '') for f in os.listdir(folder) if f.endswith('.' + 'asc')]
-
     for i in file_list:
         print(i)
-        summarize(folder + i, roi=roi, blsub=blsub)
+        summarize(folder, i, protocol, roi=roi, blsub=blsub)
