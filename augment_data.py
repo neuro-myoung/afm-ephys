@@ -40,20 +40,22 @@ header_list = [
 ]
 
 
-def load_file(folder, filename, headers=header_list):
+def load_files(folder, filename, protocol, headers=header_list):
     """
     This function will load a pseudo-raw HEKA .asc file, reformat it for later
-    analysis.
+    analysis. It will also load the associated parameter and sensitivity files if present in the appropriate folders.
     """
-    dat = pd.read_csv(folder + filename + '_scan-80.asc', sep=",", header=None,
+    dat_file = filename + '_' + protocol + '.asc'
+    dat = pd.read_csv(folder + dat_file, sep=",", header=None,
                       names=headers)
 
-    params = pd.read_csv(folder + filename + '_params.csv', sep=",",
+    params = pd.read_csv('params/' + filename + '_params.csv', sep=",",
                          header=0, index_col=0)
+    sens_file = pd.read_csv('sensitivity/' + filename + '_sensitivity.csv', sep=",",
+                            header=None)
 
-    nsweeps = int(len(dat)/60000)
+    nsweeps = int(params.loc['nsweeps', ][0])
     print(filename)
-    print(nsweeps)
     time_cols = [col for col in dat if col.startswith('t')]
     dat[time_cols] *= 1e3
     dat['i'] *= 1e12
@@ -61,7 +63,7 @@ def load_file(folder, filename, headers=header_list):
 
     dat['sweep'] = np.repeat(list(range(1, nsweeps + 1)), len(dat)/nsweeps)
 
-    return(dat)
+    return(dat, params, sens_file)
 
 
 def V2nm(V):
@@ -112,7 +114,7 @@ def position_corr(df):
     return(val)
 
 
-def augment_file(folder, filename, window):
+def augment_file(folder, protocol, filename, window):
     """
     This function will use pseudo-raw HEKA data, a sensitivity calibration file
     , and some experimental meta-data to create an augmented .h5 file with
@@ -129,21 +131,16 @@ def augment_file(folder, filename, window):
         - relative error in the work
 
     """
-    sensitivity_dat = pd.read_csv(folder + filename + '_sensitivity.csv',
-                                  sep=",", header=None)
+    [augmented_dat, param_dat, sensitivity_dat] = load_files(
+        folder, filename, protocol, headers=header_list)
 
     mean_sensitivity = np.mean(sensitivity_dat).values[0]
     std_sensitivity = np.std(sensitivity_dat).values[0]
 
-    param_dat = pd.read_csv(folder + filename + '_params.csv',
-                            header=0, index_col=0)
-
     kcant = float(param_dat.loc['kcant', 'val'])
     dkcant = float(param_dat.loc['dkcant', 'val'])
 
-    augmented_dat = load_file(folder, filename, headers=header_list)
-
-    if int(len(augmented_dat)/60000) == 1:
+    if int(len(augmented_dat) / int(param_dat.loc['nsweeps', ][0])) == 1:
         i_blsub = bl_subtraction(augmented_dat, 'i', window)
         in0_blsub = bl_subtraction(augmented_dat, 'in0', window)
         deflection = in0_blsub * mean_sensitivity
@@ -220,4 +217,4 @@ def augment_file_list(folder, protocol, window=[50, 150]):
     file_list = [f.replace(rmstring, '')
                  for f in os.listdir(folder) if f.endswith(protocol + '.asc')]
     for i in file_list:
-        augment_file(folder, i, window)
+        augment_file(folder, protocol, i, window)

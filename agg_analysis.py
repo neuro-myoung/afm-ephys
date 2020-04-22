@@ -29,12 +29,13 @@ class aggFile(object):
         appended_df = []
         for i, row in agg.iterrows():
             folder = row['construct']
-            sweep_file = 'bychannel/' + folder + '/' + \
+            sweep_file = 'modulators/' + folder + '/' + \
                 str(row['date']) + '_hek293t_' + folder + '_c' + str(row['cell']) + '_augmented.h5'
+            print(sweep_file)
             t = pd.read_hdf(sweep_file)
 
             v = t[(t['sweep'] == row['sweep']) & (t['ti'] >= 450)
-                  & (t['ti'] <= 950)].reset_index(drop=True)
+                  & (t['ti'] <= 1250)].reset_index(drop=True)
 
             [approach, retract] = self.split_sweep(v)
             approach = approach.assign(uniqueID=np.repeat(row['uniqueID'], np.shape(approach)[0]),
@@ -44,10 +45,11 @@ class aggFile(object):
                                        peaki=np.repeat(row['peaki'], np.shape(approach)[0]))
 
             appended_df.append(
-                approach[['uniqueID', 'construct', 'position', 'position_adj', 'force', 'work']])
+                approach[['uniqueID', 'construct', 'position', 'absi_blsub', 'force', 'work']])
 
         appended_df = pd.concat(appended_df)
-        appended_df.to_csv('bychannel_reptraces.csv')
+        output_filename = input('What would you like to call the aggregate sweep file? ')
+        appended_df.to_csv(output_filename + '.csv')
 
     def find_slopes(self):
         """
@@ -97,8 +99,9 @@ class aggFile(object):
         for i, row in agg.iterrows():
             plt.close('all')
             folder = row['construct']
-            sweep_file = 'bychannel/' + folder + '/' + \
+            sweep_file = 'modulators/' + folder + '/' + \
                 str(row['date']) + '_hek293t_' + folder + '_c' + str(row['cell']) + '_augmented.h5'
+            print(sweep_file)
             t = pd.read_hdf(sweep_file)
 
             v = t[(t['sweep'] == row['sweep']) & (t['ti'] >= 450)
@@ -121,7 +124,3 @@ class aggFile(object):
         agg = agg.merge(new_column, left_index=True, right_index=True)
         agg.to_csv(self.agg_path)
         return(agg)
-
-
-x = aggFile('agg/agg_bychannel.csv')
-x.find_slopes()
