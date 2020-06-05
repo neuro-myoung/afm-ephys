@@ -107,7 +107,7 @@ def summarize(folder, filename, protocol, roi=None, blsub=[50, 150]):
     # Read in required files
     rmstring = '_' + protocol
     fullpath = (folder+filename).replace(rmstring, '')
-    param = pd.read_csv(folder + '/params/' + filename + '_params.csv', header=0, index_col=0)
+    param = pd.read_csv(folder + 'params/' + filename + '_params.csv', header=0, index_col=0)
     dat = pd.read_hdf(fullpath + '_augmented.h5')
     nsweeps = int(param.loc['nsweeps', 'val'])
 
@@ -132,8 +132,8 @@ def summarize(folder, filename, protocol, roi=None, blsub=[50, 150]):
         tpeakw=dat_sub['tin0'][(grps_sub['work'].idxmax())].reset_index(drop=True),
         wpeakf=dat_sub['work'][(grps_sub['force'].idxmax())].reset_index(drop=True),
         leak=grps.apply(window_val, 'i', blsub[0], blsub[1], 'mean').reset_index(drop=True),
-        offset=grps.apply(window_val, 'i_blsub', roi[0]+50,
-                          roi[0]+100, 'mean').reset_index(drop=True),
+        offset=grps.apply(window_val, 'i_blsub', roi[0],
+                          roi[0]+50, 'mean').reset_index(drop=True),
         stdev=grps.apply(window_val, 'i', roi[0]-100, roi[0], 'sd').reset_index(drop=True),
         vhold=grps.apply(window_val, 'v', blsub[0], blsub[1], 'mean').reset_index(drop=True),
         vstep=grps.apply(window_val, 'v', roi[0], roi[1], 'mean').reset_index(drop=True),
@@ -143,6 +143,7 @@ def summarize(folder, filename, protocol, roi=None, blsub=[50, 150]):
     agg_df = agg_df.assign(
         delay=agg_df['tpeaki'] - agg_df['tpeakf'],
         seal=agg_df['vhold']/agg_df['leak'],
+        #seal=np.repeat(param.loc['Rm'][0], nsweeps),
         thresh=np.abs(agg_df['offset']) + 5*agg_df['stdev']
     )
 

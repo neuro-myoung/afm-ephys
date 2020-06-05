@@ -33,6 +33,7 @@ class aggFile(object):
                 str(row['date']) + '_hek293t_' + folder + '_c' + str(row['cell']) + '_augmented.h5'
             print(sweep_file)
             t = pd.read_hdf(sweep_file)
+            print(np.max(t['position']))
 
             v = t[(t['sweep'] == row['sweep']) & (t['ti'] >= 450)
                   & (t['ti'] <= 1250)].reset_index(drop=True)
@@ -45,13 +46,13 @@ class aggFile(object):
                                        peaki=np.repeat(row['peaki'], np.shape(approach)[0]))
 
             appended_df.append(
-                approach[['uniqueID', 'construct', 'position', 'absi_blsub', 'force', 'work']])
+                approach[['uniqueID', 'construct', 'position', 'position_adj', 'absi_blsub', 'force', 'work']])
 
         appended_df = pd.concat(appended_df)
         output_filename = input('What would you like to call the aggregate sweep file? ')
         appended_df.to_csv(output_filename + '.csv')
 
-    def find_slopes(self):
+    def find_slopes(self, x, y):
         """
         This function will take a summary file and allow you to fit the slopes to all the associated approach traces.
         The slopes will then be added to the summary data file.
@@ -63,11 +64,11 @@ class aggFile(object):
             This function will fit a line to a manually selected region of the work-current plot. The fit will be
             added to the plot for visualization and the slope will be returned in pA/fJ.
             """
-            indmin, indmax = np.searchsorted(self.approach['work'], (xmin, xmax))
-            indmax = min(len(self.approach['work']) - 1, indmax)
+            indmin, indmax = np.searchsorted(self.approach[x], (xmin, xmax))
+            indmax = min(len(self.approach[x]) - 1, indmax)
 
-            subx = self.approach['work'][indmin:indmax]
-            suby = self.approach['absi_blsub'][indmin:indmax]
+            subx = self.approach[x][indmin:indmax]
+            suby = self.approach[y][indmin:indmax]
             try:
                 poptLin = curve_fit(linFit, subx, suby)[0]
             except RuntimeError:
@@ -83,8 +84,8 @@ class aggFile(object):
 
             fitY = poptLin[0]*subx + poptLin[1]
             ax.plot(subx, fitY, '--', color='red')
-            ax.axvspan(self.approach['work'][indmin],
-                       self.approach['work'][indmax],
+            ax.axvspan(self.approach[x][indmin],
+                       self.approach[x][indmax],
                        color='grey', alpha=0.25)
             slopes.append(round(poptLin[0], 3))
             fig.canvas.draw()
@@ -110,7 +111,7 @@ class aggFile(object):
             [self.approach, self.retract] = self.split_sweep(v)
 
             fig, ax = plt.subplots(figsize=(15, 7))
-            ax.plot(self.approach['work'], self.approach['absi_blsub'])
+            ax.plot(self.approach[x], self.approach[y])
             ax.set_xlabel('Work(fJ)')
             ax.set_ylabel('Current (A)')
 

@@ -28,7 +28,6 @@ The final output is a long-form .h5 file that can be subjected to later
 analysis.
 
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.integrate as it
@@ -140,7 +139,7 @@ def augment_file(folder, protocol, filename, window):
     kcant = float(param_dat.loc['kcant', 'val'])
     dkcant = float(param_dat.loc['dkcant', 'val'])
 
-    if int(len(augmented_dat) / int(param_dat.loc['nsweeps', ][0])) == 1:
+    if int(len(augmented_dat) / (max(augmented_dat['index'])+1)) == 1:
         i_blsub = bl_subtraction(augmented_dat, 'i', window)
         in0_blsub = bl_subtraction(augmented_dat, 'in0', window)
         deflection = in0_blsub * mean_sensitivity
@@ -169,6 +168,7 @@ def augment_file(folder, protocol, filename, window):
             dwork=dwork
         )
 
+        print(max(position))
     else:
         grps = augmented_dat.groupby('sweep')
 
@@ -203,6 +203,7 @@ def augment_file(folder, protocol, filename, window):
             .reset_index(drop=True) * rel_error
 
         )
+        print(max(augmented_dat['position']))
 
     augmented_dat.to_hdf(folder + filename + '_augmented.h5', key='df',
                          mode='w')
